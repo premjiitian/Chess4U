@@ -1,0 +1,211 @@
+import Foundation
+
+// MARK: - Puzzle Difficulty
+enum PuzzleDifficulty: String, Codable, CaseIterable {
+    case beginner = "Beginner"
+    case easy = "Easy"
+    case medium = "Medium"
+    case hard = "Hard"
+    case expert = "Expert"
+
+    var eloRange: ClosedRange<Int> {
+        switch self {
+        case .beginner: return 800...1000
+        case .easy:     return 1000...1300
+        case .medium:   return 1300...1600
+        case .hard:     return 1600...1800
+        case .expert:   return 1800...2200
+        }
+    }
+}
+
+// MARK: - Puzzle Theme
+enum PuzzleTheme: String, Codable, CaseIterable {
+    case fork = "Fork"
+    case pin = "Pin"
+    case skewer = "Skewer"
+    case discoveredAttack = "Discovered Attack"
+    case doubleCheck = "Double Check"
+    case backRankMate = "Back Rank Mate"
+    case smotheredMate = "Smothered Mate"
+    case queenSacrifice = "Queen Sacrifice"
+    case deflection = "Deflection"
+    case decoy = "Decoy"
+    case xRayAttack = "X-Ray Attack"
+    case zugzwang = "Zugzwang"
+    case passedPawn = "Passed Pawn"
+    case mateInOne = "Mate in 1"
+    case mateInTwo = "Mate in 2"
+    case mateInThree = "Mate in 3"
+    case endgameTechnique = "Endgame Technique"
+    case openingTrap = "Opening Trap"
+    case middlegameTactics = "Middlegame Tactics"
+    case combination = "Combination"
+
+    var icon: String {
+        switch self {
+        case .fork: return "⑂"
+        case .pin: return "📌"
+        case .skewer: return "⚔️"
+        case .discoveredAttack: return "💥"
+        case .doubleCheck: return "⚡"
+        case .backRankMate: return "🏠"
+        case .smotheredMate: return "🤝"
+        case .queenSacrifice: return "♛"
+        case .deflection: return "↗️"
+        case .decoy: return "🎯"
+        case .xRayAttack: return "🔍"
+        case .zugzwang: return "😰"
+        case .passedPawn: return "♟"
+        case .mateInOne: return "1️⃣"
+        case .mateInTwo: return "2️⃣"
+        case .mateInThree: return "3️⃣"
+        case .endgameTechnique: return "🏁"
+        case .openingTrap: return "🪤"
+        case .middlegameTactics: return "⚡"
+        case .combination: return "🌟"
+        }
+    }
+}
+
+// MARK: - Chess Puzzle
+struct ChessPuzzle: Codable, Identifiable {
+    var id: UUID = UUID()
+    var fen: String
+    var solution: [String]          // Moves in long algebraic notation
+    var theme: PuzzleTheme
+    var difficulty: PuzzleDifficulty
+    var playerToMove: PieceColor
+    var rating: Int
+    var title: String
+    var explanation: String
+    var hint: String?
+    var followUpPositions: [String]?  // FENs after each solution move
+
+    // Tracking
+    var attemptCount: Int = 0
+    var solvedCorrectly: Bool = false
+    var timeSpent: TimeInterval = 0
+    var hintsUsed: Int = 0
+
+    static func warmupPuzzles(for band: PlayerBand) -> [ChessPuzzle] {
+        puzzleDatabase.filter { p in
+            band.calculationDepth.contains(p.solution.count - 1) &&
+            (p.difficulty.eloRange.lowerBound >= band == .bandA ? 800 : 1000)
+        }.shuffled().prefix(5).map { $0 }
+    }
+
+    // Sample puzzle database
+    static let puzzleDatabase: [ChessPuzzle] = [
+        ChessPuzzle(
+            fen: "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+            solution: ["f3g5", "f6e4", "g5e4", "d8h4", "e1f1", "e4d2"],
+            theme: .fork,
+            difficulty: .medium,
+            playerToMove: .white,
+            rating: 1400,
+            title: "Knight Fork Opportunity",
+            explanation: "White's knight jump to g5 creates a dangerous fork threat, forcing Black to recapture and giving White a fork opportunity.",
+            hint: "Look for a knight move that attacks multiple pieces."
+        ),
+        ChessPuzzle(
+            fen: "6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
+            solution: ["e1e8"],
+            theme: .backRankMate,
+            difficulty: .easy,
+            playerToMove: .white,
+            rating: 800,
+            title: "Back Rank Mate",
+            explanation: "White delivers checkmate immediately by moving the rook to e8. Black's king is trapped on the back rank.",
+            hint: "Can you find a rook move that delivers checkmate?"
+        ),
+        ChessPuzzle(
+            fen: "r2q1rk1/pp2bppp/2np1n2/2p1p3/2B1P3/2N1BN2/PPP2PPP/R2Q1RK1 w - - 0 1",
+            solution: ["c4f7", "f8f7", "d1d8"],
+            theme: .queenSacrifice,
+            difficulty: .hard,
+            playerToMove: .white,
+            rating: 1700,
+            title: "Bishop Sacrifice and Queen Invasion",
+            explanation: "The bishop sacrifice on f7 is a classic Greek Gift sacrifice. After the king captures, the queen penetrates decisively.",
+            hint: "What happens if you sacrifice the bishop on f7?"
+        ),
+        ChessPuzzle(
+            fen: "8/8/8/3k4/8/3K4/3P4/8 w - - 0 1",
+            solution: ["d3e3", "d5e5", "d2d4", "e5d5", "e3d3"],
+            theme: .endgameTechnique,
+            difficulty: .medium,
+            playerToMove: .white,
+            rating: 1200,
+            title: "Opposition in King and Pawn Endgame",
+            explanation: "White uses the concept of opposition to advance the pawn. By taking the opposition, the white king forces the black king away.",
+            hint: "Think about the concept of opposition between the kings."
+        ),
+        ChessPuzzle(
+            fen: "r1bq1rk1/ppp2ppp/2np1n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 0 1",
+            solution: ["c4b5", "c6b8", "c3d5"],
+            theme: .pin,
+            difficulty: .medium,
+            playerToMove: .white,
+            rating: 1350,
+            title: "Pin and Win",
+            explanation: "The bishop move to b5 creates a pin on the knight. Then the knight jumps to d5 exploiting the pin.",
+            hint: "How can you pin a knight?"
+        ),
+        ChessPuzzle(
+            fen: "r1b1k2r/ppppqppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPPQPPP/R1B1K2R w KQkq - 0 1",
+            solution: ["c3d5", "f6d5", "c4d5"],
+            theme: .fork,
+            difficulty: .easy,
+            playerToMove: .white,
+            rating: 1100,
+            title: "Knight Fork After Exchange",
+            explanation: "The knight jump to d5 forks the knight on f6 and the bishop on c7, winning material.",
+            hint: "Can a knight move attack two pieces at once?"
+        ),
+        ChessPuzzle(
+            fen: "6k1/p4p1p/1p4p1/8/8/1P4P1/P4P1P/5RK1 w - - 0 1",
+            solution: ["f1f8"],
+            theme: .backRankMate,
+            difficulty: .beginner,
+            playerToMove: .white,
+            rating: 700,
+            title: "Simple Back Rank Mate",
+            explanation: "The rook delivers checkmate on f8. The black king has no escape squares and the rook controls the back rank.",
+            hint: "Where can your rook go to checkmate?"
+        ),
+        ChessPuzzle(
+            fen: "2r3k1/5ppp/8/8/8/8/5PPP/2R3K1 w - - 0 1",
+            solution: ["c1c8"],
+            theme: .backRankMate,
+            difficulty: .beginner,
+            playerToMove: .white,
+            rating: 750,
+            title: "Rook vs Rook Back Rank",
+            explanation: "White's rook checkmates by going to c8, exploiting the weak back rank.",
+            hint: "Which file is open for a back rank attack?"
+        ),
+        ChessPuzzle(
+            fen: "r1bqkb1r/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+            solution: ["f1c4", "f8c5", "c2c3", "d8f6"],
+            theme: .openingTrap,
+            difficulty: .easy,
+            playerToMove: .white,
+            rating: 1000,
+            title: "Italian Game — Center Control",
+            explanation: "White develops with Bc4 targeting f7, then plays c3 to prepare d4. Classical Italian development.",
+            hint: "Develop pieces toward the center and prepare the pawn break."
+        ),
+        ChessPuzzle(
+            fen: "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1",
+            solution: ["e1d2", "e8d7", "d2e3", "d7e7", "e3d4", "e7d7", "d4e5", "d7e7", "e2e4", "e7d7", "e4e5", "d7e7", "e5e6", "e7f8", "e6e7", "f8e8", "e1e6"],
+            theme: .endgameTechnique,
+            difficulty: .hard,
+            playerToMove: .white,
+            rating: 1600,
+            title: "King and Pawn vs King — Winning Technique",
+            explanation: "White must use the key squares concept to promote the pawn. The king must reach e6 or f7 to escort the pawn.",
+            hint: "The king must reach the key squares: d6, e6, or f6."
+        )
+    ]
+}
