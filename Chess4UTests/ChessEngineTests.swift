@@ -147,6 +147,235 @@ final class ChessEngineTests: XCTestCase {
         XCTAssertFalse(moves.contains { $0.isCastling && $0.to == Square(6, 0) })
     }
 
+    // MARK: - Sliding piece move counts (rook / bishop / queen)
+
+    func testRookMoves_fromD4_onEmptyBoard_14() {
+        var board = ChessBoard()
+        for f in 0...7 { for r in 0...7 { board[Square(f, r)] = nil } }
+        let d4 = Square(3, 3)
+        let rook = ChessPiece(type: .rook, color: .white)
+        board[d4] = rook
+        // No king → isInCheck guard returns false, all pseudo-legal moves are legal
+        XCTAssertEqual(engine.legalMoves(for: rook, at: d4, on: board).count, 14)
+    }
+
+    func testBishopMoves_fromE4_onEmptyBoard_13() {
+        var board = ChessBoard()
+        for f in 0...7 { for r in 0...7 { board[Square(f, r)] = nil } }
+        let e4 = Square(4, 3)
+        let bishop = ChessPiece(type: .bishop, color: .white)
+        board[e4] = bishop
+        XCTAssertEqual(engine.legalMoves(for: bishop, at: e4, on: board).count, 13)
+    }
+
+    func testQueenMoves_fromD4_onEmptyBoard_27() {
+        var board = ChessBoard()
+        for f in 0...7 { for r in 0...7 { board[Square(f, r)] = nil } }
+        let d4 = Square(3, 3)
+        let queen = ChessPiece(type: .queen, color: .white)
+        board[d4] = queen
+        XCTAssertEqual(engine.legalMoves(for: queen, at: d4, on: board).count, 27)
+    }
+
+    // MARK: - Pawn diagonal capture
+
+    func testPawnCapture_diagonal() {
+        // White pawn on d4, black pawn on e5 — white can advance to d5 or capture on e5
+        let fen = "7k/8/8/4p3/3P4/8/8/K7 w - - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let d4 = Square(3, 3)
+        let pawn = board[d4]!
+        let moves = engine.legalMoves(for: pawn, at: d4, on: board)
+        XCTAssertEqual(moves.count, 2)
+        XCTAssertTrue(moves.contains { $0.to == Square(4, 4) && $0.isCapture })  // dxe5
+        XCTAssertTrue(moves.contains { $0.to == Square(3, 4) && !$0.isCapture }) // d5
+    }
+
+    // MARK: - En passant capture execution
+
+    func testEnPassant_capturedPawnRemovedFromBoard() {
+        // White pawn d5 captures en passant on e6; black pawn on e5 must vanish
+        let fen = "7k/8/8/3Pp3/8/8/8/K7 w - e6 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let d5 = Square(3, 4)
+        let pawn = board[d5]!
+        let moves = engine.legalMoves(for: pawn, at: d5, on: board)
+        guard let epMove = moves.first(where: { $0.isEnPassant }) else {
+            XCTFail("En passant move not generated"); return
+        }
+        let newBoard = engine.applyMove(epMove, to: board)
+        XCTAssertNil(newBoard[Square(4, 4)])          // black pawn on e5 removed
+        XCTAssertNotNil(newBoard[Square(4, 5)])        // white pawn landed on e6
+        XCTAssertNil(newBoard[Square(3, 4)])           // original d5 square cleared
+    }
+
+    // MARK: - Pawn promotion
+
+    func testPawnPromotion_generatesAllFourPieces() {
+        // White pawn on e7, clear path to e8
+        let fen = "7k/4P3/8/8/8/8/8/K7 w - - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let e7 = Square(4, 6)
+        let pawn = board[e7]!
+        let moves = engine.legalMoves(for: pawn, at: e7, on: board)
+        let promoMoves = moves.filter { $0.promotionPiece != nil }
+        XCTAssertEqual(promoMoves.count, 4)
+        let promoTypes = Set(promoMoves.compactMap { $0.promotionPiece })
+        XCTAssertEqual(promoTypes, [.queen, .rook, .bishop, .knight])
+    }
+
+    // MARK: - King cannot move into check
+
+    func testKing_cannotMoveIntoCheck() {
+        // White king a1, black rook c1 — b1 is controlled; only a2 and b2 are safe
+        let fen = "k7/8/8/8/8/8/8/K1r5 w - - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let a1 = Square(0, 0)
+        let king = board[a1]!
+        let moves = engine.legalMoves(for: king, at: a1, on: board)
+        XCTAssertFalse(moves.contains { $0.to == Square(1, 0) })  // b1 attacked by rook
+        XCTAssertTrue(moves.contains { $0.to == Square(0, 1) })   // a2 safe
+        XCTAssertTrue(moves.contains { $0.to == Square(1, 1) })   // b2 safe
+    }
+
+    // MARK: - Pinned piece
+
+    func testPinnedRook_canOnlyMoveAlongPinLine() {
+        // White Ke1, Re4 pinned along e-file by black Re8
+        let fen = "4r3/8/8/8/4R3/8/8/4K3 w - - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let e4 = Square(4, 3)
+        let rook = board[e4]!
+        let moves = engine.legalMoves(for: rook, at: e4, on: board)
+        // Pinned rook may only stay on the e-file (e2, e3, e5, e6, e7, xe8)
+        XCTAssertEqual(moves.count, 6)
+        XCTAssertTrue(moves.allSatisfy { $0.to.file == 4 })  // all on e-file
+    }
+
+    // MARK: - Queenside castling
+
+    func testCastling_queensideIncludedWhenLegal() {
+        // White: Ra1, Ke1 — b1/c1/d1 clear, queenside rights set
+        let fen = "4k3/8/8/8/8/8/8/R3K3 w Q - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let moves = engine.legalMoves(for: .white, on: board)
+        XCTAssertTrue(moves.contains { $0.isCastling && $0.to == Square(2, 0) })  // O-O-O
+    }
+
+    // MARK: - Checkmate and stalemate
+
+    func testLegalMoves_checkmate_returnsEmpty() {
+        // Fool's mate — white is in checkmate
+        let fen = "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        XCTAssertTrue(engine.legalMoves(for: .white, on: board).isEmpty)
+        XCTAssertTrue(engine.isInCheck(board: board, color: .white))
+    }
+
+    func testLegalMoves_stalemate_returnsEmpty() {
+        // Black king a8, white queen c7, white king b6 — black has no legal moves, not in check
+        let fen = "k7/2Q5/1K6/8/8/8/8/8 b - - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        XCTAssertTrue(engine.legalMoves(for: .black, on: board).isEmpty)
+        XCTAssertFalse(engine.isInCheck(board: board, color: .black))
+    }
+
+    // MARK: - generateNotation
+
+    func testGenerateNotation_kingsideCastling() {
+        let board = ChessBoard()
+        let king = board[Square(4, 0)]!
+        let move = ChessMove(from: Square(4, 0), to: Square(6, 0), piece: king, isCastling: true)
+        XCTAssertEqual(engine.generateNotation(move, on: board), "O-O")
+    }
+
+    func testGenerateNotation_queensideCastling() {
+        let board = ChessBoard()
+        let king = board[Square(4, 0)]!
+        let move = ChessMove(from: Square(4, 0), to: Square(2, 0), piece: king, isCastling: true)
+        XCTAssertEqual(engine.generateNotation(move, on: board), "O-O-O")
+    }
+
+    func testGenerateNotation_pawnMove() {
+        let board = ChessBoard()
+        let pawn = board[Square(4, 1)]!  // e2 pawn
+        let move = ChessMove(from: Square(4, 1), to: Square(4, 3), piece: pawn)
+        XCTAssertEqual(engine.generateNotation(move, on: board), "e4")
+    }
+
+    func testGenerateNotation_pieceMove() {
+        let board = ChessBoard()
+        let knight = board[Square(6, 0)]!  // g1 knight
+        let move = ChessMove(from: Square(6, 0), to: Square(5, 2), piece: knight)
+        // PieceType.knight.symbol is a unicode glyph; uppercased() preserves it
+        let notation = engine.generateNotation(move, on: board)
+        XCTAssertTrue(notation.hasSuffix("f3"))
+        XCTAssertFalse(notation.hasPrefix("f"))  // piece prefix present
+    }
+
+    func testGenerateNotation_pawnCapture() {
+        // White pawn e4 captures on d5
+        let fen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let whitePawn = board[Square(4, 3)]!
+        let blackPawn = board[Square(3, 4)]!
+        let move = ChessMove(from: Square(4, 3), to: Square(3, 4),
+                             piece: whitePawn, capturedPiece: blackPawn)
+        XCTAssertEqual(engine.generateNotation(move, on: board), "exd5")
+    }
+
+    func testGenerateNotation_promotion() {
+        let fen = "7k/4P3/8/8/8/8/8/K7 w - - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let pawn = board[Square(4, 6)]!
+        let move = ChessMove(from: Square(4, 6), to: Square(4, 7),
+                             piece: pawn, promotionPiece: .queen)
+        let notation = engine.generateNotation(move, on: board)
+        XCTAssertTrue(notation.hasPrefix("e8"))
+        XCTAssertTrue(notation.contains("="))
+    }
+
+    // MARK: - evaluate
+
+    func testEvaluate_startingPosition_isZero() {
+        // Symmetric position — white and black material/PST cancel exactly
+        XCTAssertEqual(engine.evaluate(board: ChessBoard()), 0)
+    }
+
+    func testEvaluate_whiteMaterialAdvantage_isPositive() {
+        var board = ChessBoard()
+        board[Square(3, 7)] = nil  // remove black queen
+        XCTAssertGreaterThan(engine.evaluate(board: board), 0)
+    }
+
+    func testEvaluate_blackMaterialAdvantage_isNegative() {
+        var board = ChessBoard()
+        board[Square(3, 0)] = nil  // remove white queen
+        XCTAssertLessThan(engine.evaluate(board: board), 0)
+    }
+
+    // MARK: - bestMove
+
+    func testBestMove_startingPosition_returnsNonNil() {
+        let move = engine.bestMove(for: .white, on: ChessBoard(), depth: 1)
+        XCTAssertNotNil(move)
+    }
+
+    func testBestMove_noLegalMoves_returnsNil() {
+        // Fool's mate — white is checkmated, no legal moves
+        let fen = "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        XCTAssertNil(engine.bestMove(for: .white, on: board, depth: 1))
+    }
+
+    func testBestMove_capturesHangingPiece() {
+        // White queen d4, black bishop e5 undefended — best move should capture on e5
+        let fen = "7k/8/8/4b3/3Q4/8/8/K7 w - - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let move = engine.bestMove(for: .white, on: board, depth: 1)
+        XCTAssertEqual(move?.to, Square(4, 4))  // Qxe5
+    }
+
     // MARK: - En passant
 
     func testEnPassant_squareSetAfterDoublePush() {
