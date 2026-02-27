@@ -16,14 +16,11 @@ on:
 jobs:
   init:
     name: Generate & push certificates
-    runs-on: macos-14
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Select Xcode 16
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
