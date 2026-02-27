@@ -31,6 +31,7 @@ struct ChessMove: Codable, Equatable, Identifiable {
     }
 
     var isCapture: Bool { capturedPiece != nil || isEnPassant }
+    var isPromotion: Bool { promotionPiece != nil }
 
     var longAlgebraic: String {
         return "\(from.algebraic)\(to.algebraic)"

@@ -546,7 +546,7 @@ final class ChessEngineTests: XCTestCase {
         let moves = engine.legalMoves(for: pawn, at: g7, on: board)
         let capturePromotions = moves.filter { $0.to == Square(7, 7) && $0.isCapture && $0.isPromotion }
         XCTAssertEqual(capturePromotions.count, 4)  // gxh8=Q/R/B/N
-        let promoTypes = Set(capturePromotions.compactMap { $0.promotionPiece?.type })
+        let promoTypes = Set(capturePromotions.compactMap { $0.promotionPiece })
         XCTAssertEqual(promoTypes, [.queen, .rook, .bishop, .knight])
     }
 }
