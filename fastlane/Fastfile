@@ -96,7 +96,9 @@ platform :ios do
       readonly:                false,
       force:                   ENV.fetch("MATCH_FORCE_RECREATE", "false") == "true",
       git_basic_authorization: git_auth,
-      api_key:                 api_key
+      api_key:                 api_key,
+      skip_install:            true,
+      skip_set_partition_list: true
     )
   end
 
