@@ -34,6 +34,7 @@
 		D2B4788797A28D38F4D54228 /* VariationPracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90DE45EB34BB5941185A9A2A /* VariationPracticeView.swift */; };
 		3F25183449D52EDDA1942746 /* FreePlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F085055D28F6269FE0DC565 /* FreePlayView.swift */; };
 		1F992EA2936B3D350F541E16 /* OpeningTrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB05A9E34FA40DA308FB083C /* OpeningTrainingView.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* EndgameTrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A6978869504132 /* EndgameTrainingView.swift */; };
 		CE2FF2728FBA54D9B5AEF251 /* GameAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E24D4596C6970D4E41255C1 /* GameAnalysisView.swift */; };
 		E563C62C5CC685AC0E44E1A0 /* LessonLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45D0C8FA2A88EC3BB8B137F7 /* LessonLibraryView.swift */; };
 		3532CF6BF9F06E2CE022FBCC /* LessonDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120A7991A12F6C78634F1A29 /* LessonDetailView.swift */; };
@@ -48,7 +49,6 @@
 		FE5E07BFDD606EB123401040 /* TreeOfThoughtEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD452A37794BBC7BBA0982BD /* TreeOfThoughtEngine.swift */; };
 		DE895BCD753C78331CDBA655 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD218140921B4F954A5AEFF5 /* Color+Extensions.swift */; };
 		D11147C60300BB03D1216AA4 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C71217A53E3EAE13573AE00 /* View+Extensions.swift */; };
-		BAD5FD6386ACC2DFB92885C3 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5E4978EFF3D1173E79C6DB22 /* Info.plist */; };
 		D2D8D95CA703EDF7210D0048 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 39DF35C5B235782381DC07AE /* Assets.xcassets */; };
 		D603C64E7AC5AAC89FC6BCC6 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 44C3DDD32D4D067164048E8E /* AVFoundation.framework */; };
 /* End PBXBuildFile section */
@@ -81,6 +81,7 @@
 		90DE45EB34BB5941185A9A2A /* VariationPracticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VariationPracticeView.swift; sourceTree = "<group>"; };
 		2F085055D28F6269FE0DC565 /* FreePlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreePlayView.swift; sourceTree = "<group>"; };
 		EB05A9E34FA40DA308FB083C /* OpeningTrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpeningTrainingView.swift; sourceTree = "<group>"; };
+		F1E2D3C4B5A6978869504132 /* EndgameTrainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndgameTrainingView.swift; sourceTree = "<group>"; };
 		8E24D4596C6970D4E41255C1 /* GameAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameAnalysisView.swift; sourceTree = "<group>"; };
 		45D0C8FA2A88EC3BB8B137F7 /* LessonLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonLibraryView.swift; sourceTree = "<group>"; };
 		120A7991A12F6C78634F1A29 /* LessonDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonDetailView.swift; sourceTree = "<group>"; };
@@ -231,6 +232,7 @@
 				90DE45EB34BB5941185A9A2A /* VariationPracticeView.swift */,
 				2F085055D28F6269FE0DC565 /* FreePlayView.swift */,
 				EB05A9E34FA40DA308FB083C /* OpeningTrainingView.swift */,
+				F1E2D3C4B5A6978869504132 /* EndgameTrainingView.swift */,
 			);
 			path = Training;
 			sourceTree = "<group>";
@@ -359,7 +361,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				D2D8D95CA703EDF7210D0048 /* Assets.xcassets in Resources */,
-				BAD5FD6386ACC2DFB92885C3 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -397,6 +398,7 @@
 				D2B4788797A28D38F4D54228 /* VariationPracticeView.swift in Sources */,
 				3F25183449D52EDDA1942746 /* FreePlayView.swift in Sources */,
 				1F992EA2936B3D350F541E16 /* OpeningTrainingView.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* EndgameTrainingView.swift in Sources */,
 				CE2FF2728FBA54D9B5AEF251 /* GameAnalysisView.swift in Sources */,
 				E563C62C5CC685AC0E44E1A0 /* LessonLibraryView.swift in Sources */,
 				3532CF6BF9F06E2CE022FBCC /* LessonDetailView.swift in Sources */,
@@ -546,7 +548,7 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Chess4U/Resources/Info.plist;
+				INFOPLIST_FILE = "Chess4U/Resources/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -578,7 +580,7 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Chess4U/Resources/Info.plist;
+				INFOPLIST_FILE = "Chess4U/Resources/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
