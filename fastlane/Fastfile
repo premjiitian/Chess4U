@@ -120,13 +120,22 @@ platform :ios do
     increment_version_number(version_number: version)
     increment_build_number(build_number:   build)
 
+    # Switch to manual signing so xcodebuild uses the match-installed
+    # App Store profile instead of trying to auto-resolve a dev profile.
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path:               "Chess4U.xcodeproj",
+      team_id:            ENV["DEVELOPMENT_TEAM"],
+      code_sign_identity: "Apple Distribution",
+      profile_name:       "match AppStore com.chess4u.Chess4U 1772230104"
+    )
+
     # Build & sign
     build_app(
       project:       "Chess4U.xcodeproj",
       scheme:        "Chess4U",
       configuration: "Release",
-      export_method: "app-store",
-      xcargs:        "DEVELOPMENT_TEAM=#{ENV['DEVELOPMENT_TEAM']}"
+      export_method: "app-store"
     )
 
     # Upload to TestFlight
