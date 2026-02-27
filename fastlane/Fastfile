@@ -105,12 +105,27 @@ platform :ios do
   lane :beta do
     key = api_key
 
+    # Create a short-lived keychain so the signing key is unlocked and
+    # accessible to xcodebuild without any UI permission popup on CI.
+    keychain_name     = "ci-build.keychain"
+    keychain_password = "ci-temp"
+    create_keychain(
+      name:              keychain_name,
+      password:          keychain_password,
+      default_keychain:  true,
+      unlock:            true,
+      timeout:           3600,
+      add_to_search_list: true
+    )
+
     # Fetch certificates & provisioning profiles from the private certs repo
     match(
       type:                    "appstore",
       readonly:                true,
       git_basic_authorization: git_auth,
-      api_key:                 key
+      api_key:                 key,
+      keychain_name:           keychain_name,
+      keychain_password:       keychain_password
     )
 
     # Version from git tag (v1.2.3 → 1.2.3), build from run number
