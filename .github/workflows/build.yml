@@ -51,6 +51,18 @@ jobs:
             ONLY_ACTIVE_ARCH=YES \
           | xcpretty
 
+      - name: Run unit tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Chess4U.xcodeproj \
+            -scheme Chess4U \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=YES \
+          | xcpretty
+
       - name: Upload build logs on failure
         if: failure()
         uses: actions/upload-artifact@v4

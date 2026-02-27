@@ -51,6 +51,12 @@
 		D11147C60300BB03D1216AA4 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C71217A53E3EAE13573AE00 /* View+Extensions.swift */; };
 		D2D8D95CA703EDF7210D0048 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 39DF35C5B235782381DC07AE /* Assets.xcassets */; };
 		D603C64E7AC5AAC89FC6BCC6 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 44C3DDD32D4D067164048E8E /* AVFoundation.framework */; };
+		AA000012BB000012CC000012 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA000011BB000011CC000011 /* XCTest.framework */; };
+		AA000022BB000022CC000022 /* ChessBoardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000021BB000021CC000021 /* ChessBoardTests.swift */; };
+		AA000024BB000024CC000024 /* ChessEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000023BB000023CC000023 /* ChessEngineTests.swift */; };
+		AA000026BB000026CC000026 /* ChessPuzzleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000025BB000025CC000025 /* ChessPuzzleTests.swift */; };
+		AA000028BB000028CC000028 /* PlayerBandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000027BB000027CC000027 /* PlayerBandTests.swift */; };
+		AA000030BB000030CC000030 /* SquareTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000029BB000029CC000029 /* SquareTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -100,7 +106,24 @@
 		39DF35C5B235782381DC07AE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		44C3DDD32D4D067164048E8E /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		625ACE7FA04888266A8808AD /* Chess4U.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chess4U.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000004BB000004CC000004 /* Chess4UTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Chess4UTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000011BB000011CC000011 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		AA000021BB000021CC000021 /* ChessBoardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessBoardTests.swift; sourceTree = "<group>"; };
+		AA000023BB000023CC000023 /* ChessEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessEngineTests.swift; sourceTree = "<group>"; };
+		AA000025BB000025CC000025 /* ChessPuzzleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessPuzzleTests.swift; sourceTree = "<group>"; };
+		AA000027BB000027CC000027 /* PlayerBandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerBandTests.swift; sourceTree = "<group>"; };
+		AA000029BB000029CC000029 /* SquareTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SquareTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXContainerItemProxy section */
+		AA000006BB000006CC000006 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 42AEFBAE01D2DFD981F7DA7D;
+			remoteInfo = Chess4U;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		6DB04654966809A36F783873 /* Frameworks */ = {
@@ -111,6 +134,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA000003BB000003CC000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000012BB000012CC000012 /* XCTest.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -118,6 +149,7 @@
 			isa = PBXGroup;
 			children = (
 				B11BA34D63C71E3E5D1803C0 /* Chess4U */,
+				AA000005BB000005CC000005 /* Chess4UTests */,
 				10DF28A84E55A2F741349FDF /* Products */,
 				44C3DDD32D4D067164048E8E /* AVFoundation.framework */,
 			);
@@ -127,8 +159,21 @@
 			isa = PBXGroup;
 			children = (
 				625ACE7FA04888266A8808AD /* Chess4U.app */,
+				AA000004BB000004CC000004 /* Chess4UTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		AA000005BB000005CC000005 /* Chess4UTests */ = {
+			isa = PBXGroup;
+			children = (
+				AA000021BB000021CC000021 /* ChessBoardTests.swift */,
+				AA000023BB000023CC000023 /* ChessEngineTests.swift */,
+				AA000025BB000025CC000025 /* ChessPuzzleTests.swift */,
+				AA000027BB000027CC000027 /* PlayerBandTests.swift */,
+				AA000029BB000029CC000029 /* SquareTests.swift */,
+			);
+			path = Chess4UTests;
 			sourceTree = "<group>";
 		};
 		B11BA34D63C71E3E5D1803C0 /* Chess4U */ = {
@@ -322,6 +367,23 @@
 			productReference = 625ACE7FA04888266A8808AD /* Chess4U.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AA000001BB000001CC000001 /* Chess4UTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA000008BB000008CC000008 /* Build configuration list for PBXNativeTarget "Chess4UTests" */;
+			buildPhases = (
+				AA000002BB000002CC000002 /* Sources */,
+				AA000003BB000003CC000003 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA000007BB000007CC000007 /* PBXTargetDependency */,
+			);
+			name = Chess4UTests;
+			productName = Chess4UTests;
+			productReference = AA000004BB000004CC000004 /* Chess4UTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -334,6 +396,10 @@
 				TargetAttributes = {
 					42AEFBAE01D2DFD981F7DA7D = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					AA000001BB000001CC000001 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = 42AEFBAE01D2DFD981F7DA7D;
 					};
 				};
 			};
@@ -351,6 +417,7 @@
 			projectRoot = "";
 			targets = (
 				42AEFBAE01D2DFD981F7DA7D /* Chess4U */,
+				AA000001BB000001CC000001 /* Chess4UTests */,
 			);
 		};
 /* End PBXProject section */
@@ -416,7 +483,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA000002BB000002CC000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000022BB000022CC000022 /* ChessBoardTests.swift in Sources */,
+				AA000024BB000024CC000024 /* ChessEngineTests.swift in Sources */,
+				AA000026BB000026CC000026 /* ChessPuzzleTests.swift in Sources */,
+				AA000028BB000028CC000028 /* PlayerBandTests.swift in Sources */,
+				AA000030BB000030CC000030 /* SquareTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AA000007BB000007CC000007 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 42AEFBAE01D2DFD981F7DA7D /* Chess4U */;
+			targetProxy = AA000006BB000006CC000006 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A3FA7BC046E62B1245F73497 /* Debug */ = {
@@ -602,6 +689,44 @@
 			};
 			name = Release;
 		};
+		AA000009BB000009CC000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.chess4u.Chess4UTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Chess4U.app/Chess4U";
+			};
+			name = Debug;
+		};
+		AA000010BB000010CC000010 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.chess4u.Chess4UTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Chess4U.app/Chess4U";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -619,6 +744,15 @@
 			buildConfigurations = (
 				EA519AEBFC56C3FABDB22367 /* Debug */,
 				80BB3E01927863D718CAEC94 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA000008BB000008CC000008 /* Build configuration list for PBXNativeTarget "Chess4UTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA000009BB000009CC000009 /* Debug */,
+				AA000010BB000010CC000010 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
