@@ -119,11 +119,12 @@ class ChessBoardViewModel: ObservableObject {
         isAIThinking = true
         let board = game.board
         let color = board.activeColor
+        let engine = self.engine  // capture before leaving MainActor context
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else { return }
-            let move = self.engine.bestMove(for: color, on: board, depth: depth)
+            let move = engine.bestMove(for: color, on: board, depth: depth)
             DispatchQueue.main.async {
+                guard let self = self else { return }
                 self.isAIThinking = false
                 if let move = move {
                     self.executeMove(move)

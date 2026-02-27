@@ -91,7 +91,7 @@ struct ChessPuzzle: Codable, Identifiable {
     static func warmupPuzzles(for band: PlayerBand) -> [ChessPuzzle] {
         puzzleDatabase.filter { p in
             band.calculationDepth.contains(p.solution.count - 1) &&
-            (p.difficulty.eloRange.lowerBound >= band == .bandA ? 800 : 1000)
+            (p.difficulty.eloRange.lowerBound >= (band == .bandA ? 800 : 1000))
         }.shuffled().prefix(5).map { $0 }
     }
 

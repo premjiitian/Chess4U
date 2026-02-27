@@ -61,7 +61,7 @@ class TrainingViewModel: ObservableObject {
 
     // MARK: - Handle Player Move
     func handlePlayerMove(_ move: ChessMove) {
-        guard let puzzle = currentPuzzle, puzzleState == .waitingForMove else { return }
+        guard currentPuzzle != nil, puzzleState == .waitingForMove else { return }
 
         let expectedMove = solutionMoves[currentSolutionIndex]
         let playerMove = move.longAlgebraic
@@ -192,7 +192,7 @@ class TrainingViewModel: ObservableObject {
     }
 
     func requestHint() {
-        guard let puzzle = currentPuzzle, let profile = profile else { return }
+        guard let puzzle = currentPuzzle, profile != nil else { return }
         let settings = AppSettings()
         hintText = coach.generateHint(for: puzzle, level: settings.hintLevel, board: boardVM.game.board)
         if var puzzle = currentPuzzle {

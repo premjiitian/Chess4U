@@ -20,12 +20,14 @@ class GameAnalysisViewModel: ObservableObject {
         isAnalyzing = true
         boardVM = ChessBoardViewModel(profile: profile)
 
+        guard let profile = self.profile else { return }
+        let aiCoach = self.aiCoach  // capture before leaving MainActor context
+
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self, let profile = self.profile else { return }
-            let result = self.aiCoach.analyzeGame(game, profile: profile)
+            let result = aiCoach.analyzeGame(game, profile: profile)
             DispatchQueue.main.async {
-                self.analysis = result
-                self.isAnalyzing = false
+                self?.analysis = result
+                self?.isAnalyzing = false
             }
         }
     }
