@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - Chess Engine Service
-final class ChessEngineService {
+final class ChessEngineService: @unchecked Sendable {
     static let shared = ChessEngineService()
     private init() {}
 

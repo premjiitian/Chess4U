@@ -213,7 +213,6 @@ class VariationPracticeViewModel: ObservableObject {
 
     private func makeResponseMove() {
         guard currentDepth < expectedMoves.count else { return }
-        let responseMove = expectedMoves[currentDepth]
         // Apply response move
         comment = nil
         isCorrect = nil

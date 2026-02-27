@@ -26,7 +26,7 @@ enum DrawReason: String, Codable, Equatable {
 }
 
 // MARK: - Chess Game
-class ChessGame: ObservableObject, Codable {
+class ChessGame: ObservableObject, Codable, @unchecked Sendable {
     var id: UUID = UUID()
     @Published var board: ChessBoard
     @Published var moves: [ChessMove] = []

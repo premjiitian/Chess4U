@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 // MARK: - AI Coach Service
-final class AICoachService: ObservableObject {
+final class AICoachService: ObservableObject, @unchecked Sendable {
     static let shared = AICoachService()
     private init() {}
 
@@ -147,7 +147,7 @@ final class AICoachService: ObservableObject {
     func analyzeGame(_ game: ChessGame, profile: PlayerProfile) -> GameAnalysis {
         let engine = ChessEngineService.shared
         var criticalMistakes: [MoveAnalysis] = []
-        var missedTactics: [MoveAnalysis] = []
+        let missedTactics: [MoveAnalysis] = []
         var goodMoves: [MoveAnalysis] = []
         var evaluations: [Double] = [0.0]
 

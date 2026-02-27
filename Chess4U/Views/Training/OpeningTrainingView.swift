@@ -12,7 +12,7 @@ struct OpeningTrainingView: View {
     }
 
     var filteredOpenings: [ChessOpening] {
-        guard let profile = appState.playerProfile else { return ChessOpening.openingLibrary }
+        guard appState.playerProfile != nil else { return ChessOpening.openingLibrary }
         return ChessOpening.openingLibrary.filter { opening in
             switch opening.color {
             case .white: return true
@@ -338,7 +338,7 @@ struct OpeningDetailView: View {
         .navigationTitle(opening.name)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            if let b = ChessBoard(fen: opening.fen) {
+            if ChessBoard(fen: opening.fen) != nil {
                 boardVM.game = ChessGame(fen: opening.fen)
             }
         }

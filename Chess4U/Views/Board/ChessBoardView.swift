@@ -122,7 +122,7 @@ struct ChessBoardView: View {
 
     var promotionOverlay: some View {
         Group {
-            if let promSquare = vm.promotionPending {
+            if vm.promotionPending != nil {
                 PromotionView(
                     color: vm.game.board.activeColor,
                     onSelect: { piece in

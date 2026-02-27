@@ -7,11 +7,7 @@ final class TreeOfThoughtEngine {
 
     // MARK: - Select Optimal Training Path
     func selectTrainingPath(for profile: PlayerProfile, sessionHistory: [TrainingSession]) -> TrainingType {
-        // Step 1: Analyze player profile and weaknesses
-        let weaknesses = profile.weaknesses
-        let band = profile.band
-
-        // Step 2: Generate candidate training options
+        // Step 1: Generate candidate training options
         var candidates: [(TrainingType, Double)] = TrainingType.allCases.map { type in
             (type, score(type: type, profile: profile, sessionHistory: sessionHistory))
         }
