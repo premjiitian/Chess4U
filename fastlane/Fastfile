@@ -97,8 +97,7 @@ platform :ios do
       force:                   ENV.fetch("MATCH_FORCE_RECREATE", "false") == "true",
       git_basic_authorization: git_auth,
       api_key:                 api_key,
-      skip_set_partition_list: true,
-      output_path:             "/tmp/match_output"
+      skip_set_partition_list: true
     )
   end
 
