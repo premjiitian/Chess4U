@@ -1,0 +1,143 @@
+name: Release to TestFlight
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    name: Build, Sign & Upload to TestFlight
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app
+          xcodebuild -version
+
+      # ── Signing setup ──────────────────────────────────────────────────────
+
+      - name: Install distribution certificate
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/distribution.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o "$CERTIFICATE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security import "$CERTIFICATE_PATH" \
+            -P "$P12_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+      - name: Install provisioning profile
+        env:
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+        run: |
+          PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILE_PATH"
+
+          PROFILE_FILE=$RUNNER_TEMP/Chess4U.mobileprovision
+          echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o "$PROFILE_FILE"
+
+          # Extract UUID and install under that name (required by Xcode)
+          UUID=$(/usr/libexec/PlistBuddy \
+            -c "Print :UUID" \
+            /dev/stdin <<< $(security cms -D -i "$PROFILE_FILE"))
+          cp "$PROFILE_FILE" "$PROFILE_PATH/$UUID.mobileprovision"
+          echo "Installed profile UUID: $UUID"
+
+      # ── Version bump from tag ──────────────────────────────────────────────
+
+      - name: Set build number and version from tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"           # e.g. v1.2.3
+          VERSION="${TAG#v}"                 # strip leading 'v'
+          BUILD="${GITHUB_RUN_NUMBER}"
+
+          echo "Setting VERSION=$VERSION  BUILD=$BUILD"
+
+          xcrun agvtool new-marketing-version "$VERSION"
+          xcrun agvtool new-version -all "$BUILD"
+
+      # ── Archive ───────────────────────────────────────────────────────────
+
+      - name: Archive
+        env:
+          DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project Chess4U.xcodeproj \
+            -scheme Chess4U \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/Chess4U.xcarchive" \
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="Chess4U AppStore" \
+          | xcpretty
+
+      # ── Export IPA ────────────────────────────────────────────────────────
+
+      - name: Export IPA
+        env:
+          DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
+        run: |
+          # Substitute the real team ID into ExportOptions.plist
+          sed "s/\$(DEVELOPMENT_TEAM)/$DEVELOPMENT_TEAM/g" ExportOptions.plist \
+            > "$RUNNER_TEMP/ExportOptions.plist"
+
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Chess4U.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+
+      # ── Upload to TestFlight ──────────────────────────────────────────────
+
+      - name: Upload to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+        run: |
+          API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
+          echo -n "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode -o "$API_KEY_PATH"
+
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$RUNNER_TEMP/export/Chess4U.ipa" \
+            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
+            --private-key "$API_KEY_PATH"
+
+      # ── Cleanup ───────────────────────────────────────────────────────────
+
+      - name: Clean up keychain and provisioning profile
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true
+          rm -f "$HOME/Library/MobileDevice/Provisioning Profiles"/*.mobileprovision || true
+
+      # ── Artifacts (keep IPA for debugging) ───────────────────────────────
+
+      - name: Upload IPA as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chess4U-${{ github.ref_name }}.ipa
+          path: ${{ runner.temp }}/export/Chess4U.ipa
+          retention-days: 30
