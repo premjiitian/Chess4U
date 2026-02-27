@@ -110,8 +110,8 @@ struct RadarShape: Shape {
         for (i, value) in values.enumerated() {
             let angle = Double(i) * 2 * .pi / Double(values.count) - .pi / 2
             let r = radius * max(0.05, value)
-            let point = CGPoint(x: center.x + r * cos(angle),
-                                y: center.y + r * sin(angle))
+            let point = CGPoint(x: center.x + r * cos(CGFloat(angle)),
+                                y: center.y + r * sin(CGFloat(angle)))
             if i == 0 { path.move(to: point) }
             else { path.addLine(to: point) }
         }
