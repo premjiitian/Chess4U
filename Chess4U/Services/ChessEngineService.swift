@@ -249,10 +249,27 @@ final class ChessEngineService: @unchecked Sendable {
 
     func isAttacked(square: Square, by attackerColor: PieceColor, on board: ChessBoard) -> Bool {
         for (attackerSquare, attacker) in board.allSquares(for: attackerColor) {
-            let pMoves = pseudoLegalMoves(for: attacker, at: attackerSquare, on: board)
+            // For king pieces use a castling-free move set to prevent mutual recursion:
+            // kingMoves → isInCheck → isAttacked → pseudoLegalMoves(king) → kingMoves → ...
+            let pMoves = attacker.type == .king
+                ? kingNonCastlingMoves(piece: attacker, from: attackerSquare, on: board)
+                : pseudoLegalMoves(for: attacker, at: attackerSquare, on: board)
             if pMoves.contains(where: { $0.to == square }) { return true }
         }
         return false
+    }
+
+    /// King moves without the castling check, used only by `isAttacked` to break
+    /// the `kingMoves → isInCheck → isAttacked → kingMoves` recursion cycle.
+    private func kingNonCastlingMoves(piece: ChessPiece, from square: Square, on board: ChessBoard) -> [ChessMove] {
+        let offsets = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
+        return offsets.compactMap { (df, dr) in
+            let to = square.offset(file: df, rank: dr)
+            guard to.isValid else { return nil }
+            let target = board[to]
+            if let t = target, t.color == piece.color { return nil }
+            return ChessMove(from: square, to: to, piece: piece, capturedPiece: target, notation: "")
+        }
     }
 
     // MARK: - Notation Generation
