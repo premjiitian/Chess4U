@@ -501,4 +501,52 @@ final class ChessEngineTests: XCTestCase {
         let board3 = engine.applyMove(move2, to: board2)
         XCTAssertNil(board3.enPassantSquare)
     }
+
+    // MARK: - Pin along diagonal
+
+    func testPinnedBishop_canOnlyMoveAlongPinLine() {
+        // White Ke1 (e1), Bc3 pinned diagonally by black Ba5.
+        // The a5-c3-e1 anti-diagonal has file+rank = 4.
+        // Bc3 may move to b4, d2 (stay on diagonal), or capture Ba5 — nothing else.
+        let fen = "7k/8/8/b7/8/2B5/8/4K3 w - - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let c3 = Square(2, 2)
+        let bishop = board[c3]!
+        let moves = engine.legalMoves(for: bishop, at: c3, on: board)
+        XCTAssertEqual(moves.count, 3)  // b4, d2, xa5
+        XCTAssertTrue(moves.allSatisfy { $0.to.file + $0.to.rank == 4 })  // all on a5-e1 diagonal
+        XCTAssertTrue(moves.contains { $0.to == Square(0, 4) && $0.isCapture })  // Bxc5
+    }
+
+    // MARK: - Double check
+
+    func testDoubleCheck_onlyKingCanMove() {
+        // Discovered double check: white king d1, attacked by both Bb4 and Rd8.
+        // When two pieces give check simultaneously only a king move can escape —
+        // no interposition or single capture can resolve both.
+        // Position: Kd1, black Rd8 and Bb4 both give check; legal replies = king moves only.
+        let fen = "3r4/8/8/8/1b6/8/8/3K4 w - - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        XCTAssertTrue(engine.isInCheck(board: board, color: .white))
+        let moves = engine.legalMoves(for: .white, on: board)
+        XCTAssertFalse(moves.isEmpty)  // has escape squares
+        // Every legal move must be a king move (no blocks/captures resolve a double check)
+        XCTAssertTrue(moves.allSatisfy { $0.piece.type == .king })
+    }
+
+    // MARK: - Capture and promote
+
+    func testPromotion_captureAndPromote_generatesAllFourPieces() {
+        // White pawn on g7 can capture the black rook on h8 and promote.
+        // Expect four moves (Q, R, B, N) all landing on h8.
+        let fen = "7r/6P1/8/8/8/8/8/K6k w - - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let g7 = Square(6, 6)
+        let pawn = board[g7]!
+        let moves = engine.legalMoves(for: pawn, at: g7, on: board)
+        let capturePromotions = moves.filter { $0.to == Square(7, 7) && $0.isCapture && $0.isPromotion }
+        XCTAssertEqual(capturePromotions.count, 4)  // gxh8=Q/R/B/N
+        let promoTypes = Set(capturePromotions.compactMap { $0.promotionPiece?.type })
+        XCTAssertEqual(promoTypes, [.queen, .rook, .bishop, .knight])
+    }
 }
