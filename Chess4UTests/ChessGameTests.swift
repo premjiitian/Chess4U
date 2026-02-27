@@ -78,22 +78,21 @@ final class ChessGameTests: XCTestCase {
     // MARK: - Status: check
 
     func testStatus_check_detectedAfterMove() {
-        // Fool's-mate opener – after g4 white is not yet in check.
-        // After d6 black gives check to white: set up 1.f3 e5 2.g4 Qh4#
-        // Instead test a simpler discovered check: e4, e5, Qh5 gives check.
+        // 1.e4 f5 2.Qh5+ — black's f-pawn moves from f7 to f5, opening the h5-e8
+        // diagonal. The white queen reaches h5 via d1-e2-f3-g4-h5 (e2 vacated by e4)
+        // and gives check along h5-g6-f7(empty)-e8.  Black can escape to d7, so it
+        // is .check, not .checkmate.
         let game = ChessGame()
         func mv(_ f1: Int, _ r1: Int, _ f2: Int, _ r2: Int) -> ChessMove {
             ChessMove(from: Square(f1, r1), to: Square(f2, r2), piece: game.board[Square(f1, r1)]!)
         }
-        game.makeMove(mv(4,1,4,3))  // 1. e4
-        game.makeMove(mv(4,6,4,4))  // 1...e5
-        game.makeMove(mv(3,0,7,4))  // 2. Qh5 (check on e8 diagonal? — actually Qh5 attacks e8)
-        // Qh5 is from d1(3,0) to h5(7,4); it attacks along the h5-e8 diagonal hitting e8
-        // but e8 has the black king — this is actually check!
+        game.makeMove(mv(4,1,4,3))  // 1. e4  (opens d1-h5 diagonal)
+        game.makeMove(mv(5,6,5,4))  // 1...f5 (vacates f7, opening h5-e8 diagonal)
+        game.makeMove(mv(3,0,7,4))  // 2. Qh5+ (queen checks via g6-f7-e8)
         if case .check = game.status {
             // pass
         } else {
-            XCTFail("Expected .check after Qh5, got \(game.status)")
+            XCTFail("Expected .check after Qh5+, got \(game.status)")
         }
     }
 
