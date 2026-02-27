@@ -4,7 +4,7 @@ import Combine
 // MARK: - Adaptive Difficulty Service
 final class AdaptiveDifficultyService: ObservableObject {
     static let shared = AdaptiveDifficultyService()
-    private init() {}
+    init() {}
 
     @Published var currentDifficulty: PuzzleDifficulty = .medium
     @Published var shouldShowHints: Bool = false
