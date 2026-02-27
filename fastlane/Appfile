@@ -1,0 +1,2 @@
+app_identifier("com.chess4u.Chess4U")
+team_id(ENV["DEVELOPMENT_TEAM"])

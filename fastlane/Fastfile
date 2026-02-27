@@ -1,0 +1,79 @@
+require "base64"
+
+default_platform(:ios)
+
+platform :ios do
+
+  # ── Helpers ──────────────────────────────────────────────────────────────
+
+  def api_key
+    app_store_connect_api_key(
+      key_id:                ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id:             ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_content:           ENV["APP_STORE_CONNECT_API_KEY_BASE64"],
+      is_key_content_base64: true
+    )
+  end
+
+  def git_auth
+    Base64.strict_encode64("x-access-token:#{ENV['GH_PAT']}")
+  end
+
+  # ── Lanes ────────────────────────────────────────────────────────────────
+
+  desc "Run unit tests"
+  lane :test do
+    run_tests(
+      project:      "Chess4U.xcodeproj",
+      scheme:       "Chess4U",
+      device:       "iPhone 16 Pro",
+      result_bundle: true
+    )
+  end
+
+  desc "Initialize Match — run ONCE to generate & store certificates (no Mac needed)"
+  lane :init_match do
+    match(
+      type:                    "appstore",
+      readonly:                false,
+      force:                   ENV.fetch("MATCH_FORCE_RECREATE", "false") == "true",
+      git_basic_authorization: git_auth,
+      api_key:                 api_key
+    )
+  end
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    key = api_key
+
+    # Fetch certificates & provisioning profiles from the private certs repo
+    match(
+      type:                    "appstore",
+      readonly:                true,
+      git_basic_authorization: git_auth,
+      api_key:                 key
+    )
+
+    # Version from git tag (v1.2.3 → 1.2.3), build from run number
+    version = (ENV["GITHUB_REF_NAME"] || "1.0.0").sub(/^v/, "")
+    build   = ENV["GITHUB_RUN_NUMBER"] || "1"
+
+    increment_version_number(version_number: version)
+    increment_build_number(build_number:   build)
+
+    # Build & sign
+    build_app(
+      project:       "Chess4U.xcodeproj",
+      scheme:        "Chess4U",
+      configuration: "Release",
+      export_method: "app-store"
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      api_key:                            key,
+      skip_waiting_for_build_processing:  true
+    )
+  end
+
+end
