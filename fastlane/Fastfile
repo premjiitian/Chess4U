@@ -1,16 +1,55 @@
 require "base64"
 require "openssl"
 
-# OpenSSL 3.x / ruby-openssl 3.x compatibility:
-# spaceship calls OpenSSL::PKey::EC.new(pem_string) which is no longer
-# accepted by the C extension when the key is PKCS#8-wrapped.  Intercept
-# the failure and retry with the generic PKey.read that handles all formats.
+# ── OpenSSL 3.x compat ────────────────────────────────────────────────────────
+# Load the legacy provider early so PKey.read can decode keys that were
+# generated with explicit EC curve parameters instead of a named-curve OID.
+begin
+  OpenSSL::Provider.load("legacy") if defined?(OpenSSL::Provider)
+rescue => _e
+  # Non-fatal: the provider may not be available or already loaded.
+end
+
+# spaceship calls OpenSSL::PKey::EC.new(pem_string) which ruby-openssl 3.x no
+# longer accepts for PKCS#8-wrapped keys.  Intercept the failure and try a
+# series of loading strategies until one works.
 OpenSSL::PKey::EC.singleton_class.prepend(Module.new do
   def new(*args, &block)
     super
   rescue OpenSSL::PKey::ECError, OpenSSL::PKey::PKeyError, TypeError
     raise if args.empty? || !args.first.is_a?(String)
-    OpenSSL::PKey.read(args.first)
+    raw = args.first
+
+    # ── Diagnostics (no key material – header bytes + structural info only) ──
+    $stderr.puts "[key-compat] EC.new intercepted. " \
+      "size=#{raw.bytesize} is_pem=#{raw.include?('-----BEGIN')} " \
+      "header=#{raw.byteslice(0, 5).inspect}"
+
+    # Strategy 1 – raw as-is: standard PKCS#8 PEM/DER, or traditional EC PEM
+    begin
+      return OpenSSL::PKey.read(raw)
+    rescue => e
+      $stderr.puts "[key-compat] s1 (raw) failed: #{e.message}"
+    end
+
+    # Strategy 2 – raw is still base64 (secret was double-base64-encoded)
+    begin
+      return OpenSSL::PKey.read(Base64.decode64(raw))
+    rescue => e
+      $stderr.puts "[key-compat] s2 (double-decode) failed: #{e.message}"
+    end
+
+    # Strategy 3 – secret has literal \n instead of real newlines
+    begin
+      return OpenSSL::PKey.read(raw.gsub('\n', "\n"))
+    rescue => e
+      $stderr.puts "[key-compat] s3 (unescape-newlines) failed: #{e.message}"
+    end
+
+    raise OpenSSL::PKey::PKeyError,
+      "[key-compat] Could not load API key in any format. " \
+      "Ensure APP_STORE_CONNECT_API_KEY_BASE64 contains the base64-encoded " \
+      "content of the .p8 file downloaded from the Apple Developer portal."
   end
 end)
 

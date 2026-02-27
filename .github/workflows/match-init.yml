@@ -33,24 +33,6 @@ jobs:
           git config --global user.email "ci@chess4u.app"
           git config --global user.name "Chess4U CI"
 
-      - name: Enable OpenSSL legacy provider
-        # Apple API keys use explicit EC curve parameters. OpenSSL 3.x's default
-        # provider rejects these; the legacy provider decodes them correctly.
-        run: |
-          cat > /tmp/openssl_legacy.cnf << 'EOF'
-          openssl_conf = openssl_init
-          [openssl_init]
-          providers = provider_sect
-          [provider_sect]
-          default = default_sect
-          legacy = legacy_sect
-          [default_sect]
-          activate = 1
-          [legacy_sect]
-          activate = 1
-          EOF
-          echo "OPENSSL_CONF=/tmp/openssl_legacy.cnf" >> $GITHUB_ENV
-
       - name: Run init_match lane
         env:
           MATCH_GIT_URL:                    ${{ secrets.MATCH_GIT_URL }}
