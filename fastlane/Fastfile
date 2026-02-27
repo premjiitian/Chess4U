@@ -125,7 +125,8 @@ platform :ios do
       project:       "Chess4U.xcodeproj",
       scheme:        "Chess4U",
       configuration: "Release",
-      export_method: "app-store"
+      export_method: "app-store",
+      xcargs:        "DEVELOPMENT_TEAM=#{ENV['DEVELOPMENT_TEAM']}"
     )
 
     # Upload to TestFlight
