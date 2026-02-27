@@ -448,6 +448,31 @@ final class ChessEngineTests: XCTestCase {
         XCTAssertEqual(newBoard.enPassantSquare, Square(4, 2))  // e3
     }
 
+    func testEnPassant_exposingKingToCheck_isIllegal() {
+        // White king a5, white pawn b5, black pawn c5 (just double-pushed, EP = c6),
+        // black rook g5.  Taking bxc6 ep removes BOTH pawns from rank 5, uncovering
+        // the black rook's attack on the white king — the EP capture is illegal.
+        let fen = "7k/8/8/KPp3r1/8/8/8/8 w - c6 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let b5 = Square(1, 4)
+        let pawn = board[b5]!
+        let moves = engine.legalMoves(for: pawn, at: b5, on: board)
+        XCTAssertFalse(moves.contains { $0.isEnPassant })        // EP filtered (discovered check)
+        XCTAssertTrue(moves.contains { $0.to == Square(1, 5) })  // b6 still legal
+    }
+
+    func testEnPassant_notAvailableWithoutEpSquare() {
+        // Same pawn layout as capturedPawnRemovedFromBoard but the EP square is not
+        // set (-) — en passant opportunity has expired, capture must not appear.
+        let fen = "7k/8/8/3Pp3/8/8/8/K7 w - - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let d5 = Square(3, 4)
+        let pawn = board[d5]!
+        let moves = engine.legalMoves(for: pawn, at: d5, on: board)
+        XCTAssertFalse(moves.contains { $0.isEnPassant })  // no EP square → no EP capture
+        XCTAssertEqual(moves.count, 1)                     // only d6 is available
+    }
+
     func testEnPassant_squareClearedAfterNextMove() {
         let board = ChessBoard()
         let wPawn = board[Square(4, 1)]!
