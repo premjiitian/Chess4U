@@ -1,4 +1,18 @@
 require "base64"
+require "openssl"
+
+# OpenSSL 3.x / ruby-openssl 3.x compatibility:
+# spaceship calls OpenSSL::PKey::EC.new(pem_string) which is no longer
+# accepted by the C extension when the key is PKCS#8-wrapped.  Intercept
+# the failure and retry with the generic PKey.read that handles all formats.
+OpenSSL::PKey::EC.singleton_class.prepend(Module.new do
+  def new(*args, &block)
+    super
+  rescue OpenSSL::PKey::ECError, OpenSSL::PKey::PKeyError, TypeError
+    raise if args.empty? || !args.first.is_a?(String)
+    OpenSSL::PKey.read(args.first)
+  end
+end)
 
 default_platform(:ios)
 
