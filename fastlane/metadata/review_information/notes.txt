@@ -1,0 +1,7 @@
+Chess4U is a chess training app. No account or login is required — all data is stored locally on device.
+
+To review the app:
+1. Complete the onboarding assessment (tap any skill level)
+2. Explore training modes from the Train tab
+3. Play a game on the Board tab
+4. View your skill profile and achievements on the Profile tab

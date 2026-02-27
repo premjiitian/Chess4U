@@ -1,0 +1,8 @@
+Welcome to Chess4U!
+
+• 8 specialized training modes: Tactics, Openings, Middlegame, Endgame, Calculation, Variations, Game Analysis, and Blunder Reduction
+• Adaptive AI coach with real-time guidance tailored to your skill level
+• Personalized skill profile with radar chart and weakness tracking
+• Tree-of-Thought training path selection
+• Weekly training plan and daily streak tracking
+• Achievement system

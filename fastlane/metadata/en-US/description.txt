@@ -1,0 +1,35 @@
+Master chess with your personal AI training partner.
+
+Chess4U adapts to your exact skill level and builds a personalized training plan that targets your weaknesses — so every session makes you stronger.
+
+━━ 8 SPECIALIZED TRAINING MODES ━━
+
+• Tactics Trainer — Sharpen your calculation with puzzles matched to your level
+• Opening Workshop — Learn and practice essential opening theory
+• Middlegame Mastery — Develop strategic thinking and positional understanding
+• Endgame Lab — Master the critical techniques that win won positions
+• Calculation Drills — Train your ability to see deeper and calculate faster
+• Variation Practice — Lock in theoretical lines with guided repetition
+• Game Analysis — Replay your games move-by-move with AI evaluation
+• Blunder Reduction — Identify and eliminate your most costly mistakes
+
+━━ INTELLIGENT AI COACHING ━━
+
+Chess4U's AI coach watches your every move and delivers real-time advice tuned to your skill band. Beginner? Get simple, actionable tips. Advanced? Receive deep strategic guidance and calculation challenges.
+
+The Tree-of-Thought engine selects your next training task by targeting your biggest weaknesses while avoiding fatigue — keeping your improvement curve as steep as possible.
+
+━━ YOUR PERSONAL SKILL PROFILE ━━
+
+Start with a quick assessment that places you in one of five skill bands (800–2000 Elo). As you train, your profile tracks accuracy, weaknesses, and strengths across opening, middlegame, and endgame play — giving you a clear picture of where you are and where you're heading.
+
+━━ STAY MOTIVATED ━━
+
+• Skill radar chart — see all your strengths at a glance
+• Weekly training plan — know exactly what to work on each day
+• Training streak — build the habit of daily improvement
+• Achievements — celebrate milestones on your chess journey
+
+Whether you've just learned the moves or you're pushing past 1800, Chess4U meets you where you are and helps you reach the next level.
+
+Download Chess4U and start your improvement journey today.

@@ -1,0 +1,35 @@
+name: Submit to App Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type 'submit' to confirm App Store submission"
+        required: true
+
+jobs:
+  submit:
+    name: Submit to App Store Review
+    runs-on: macos-14
+    if: ${{ github.event.inputs.confirm == 'submit' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      - name: Submit via Fastlane
+        env:
+          APP_STORE_CONNECT_API_KEY_ID:     ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID:      ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          DEVELOPMENT_TEAM:                 ${{ secrets.DEVELOPMENT_TEAM }}
+        run: bundle exec fastlane release
