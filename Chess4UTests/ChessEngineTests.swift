@@ -262,6 +262,24 @@ final class ChessEngineTests: XCTestCase {
         XCTAssertTrue(moves.contains { $0.isCastling && $0.to == Square(2, 0) })  // O-O-O
     }
 
+    func testCastling_notAvailableWhenInCheck() {
+        // Black rook on e8 gives check — you cannot castle out of check
+        let fen = "4r2k/8/8/8/8/8/8/R3K2R w KQ - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        XCTAssertTrue(engine.isInCheck(board: board, color: .white))
+        let moves = engine.legalMoves(for: .white, on: board)
+        XCTAssertFalse(moves.contains { $0.isCastling })
+    }
+
+    func testCastling_notAvailableWhenPathAttacked() {
+        // Black rook f8 controls f1 — king cannot pass through f1 for O-O
+        let fen = "5rk1/8/8/8/8/8/8/4K2R w K - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        XCTAssertFalse(engine.isInCheck(board: board, color: .white))  // not currently in check
+        let moves = engine.legalMoves(for: .white, on: board)
+        XCTAssertFalse(moves.contains { $0.isCastling && $0.to == Square(6, 0) })  // O-O blocked
+    }
+
     // MARK: - Castling execution (rook placement)
 
     func testCastling_kingside_rookMovesToF1() {
