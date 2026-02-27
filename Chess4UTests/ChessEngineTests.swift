@@ -262,6 +262,68 @@ final class ChessEngineTests: XCTestCase {
         XCTAssertTrue(moves.contains { $0.isCastling && $0.to == Square(2, 0) })  // O-O-O
     }
 
+    // MARK: - Castling execution (rook placement)
+
+    func testCastling_kingside_rookMovesToF1() {
+        // Italian game — apply the O-O move and verify rook lands on f1
+        let fen = "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let king = board[Square(4, 0)]!
+        let move = ChessMove(from: Square(4, 0), to: Square(6, 0), piece: king, isCastling: true)
+        let newBoard = engine.applyMove(move, to: board)
+        XCTAssertEqual(newBoard[Square(6, 0)]?.type, .king)  // king on g1
+        XCTAssertEqual(newBoard[Square(5, 0)]?.type, .rook)  // rook on f1
+        XCTAssertNil(newBoard[Square(7, 0)])                  // h1 cleared
+        XCTAssertNil(newBoard[Square(4, 0)])                  // e1 cleared
+    }
+
+    func testCastling_queenside_rookMovesToD1() {
+        let fen = "4k3/8/8/8/8/8/8/R3K3 w Q - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let king = board[Square(4, 0)]!
+        let move = ChessMove(from: Square(4, 0), to: Square(2, 0), piece: king, isCastling: true)
+        let newBoard = engine.applyMove(move, to: board)
+        XCTAssertEqual(newBoard[Square(2, 0)]?.type, .king)  // king on c1
+        XCTAssertEqual(newBoard[Square(3, 0)]?.type, .rook)  // rook on d1
+        XCTAssertNil(newBoard[Square(0, 0)])                  // a1 cleared
+        XCTAssertNil(newBoard[Square(4, 0)])                  // e1 cleared
+    }
+
+    // MARK: - Promotion execution
+
+    func testPromotion_applyMove_pieceTypeChanges() {
+        let fen = "7k/4P3/8/8/8/8/8/K7 w - - 0 1"
+        guard let board = ChessBoard(fen: fen) else { XCTFail("FEN parsing failed"); return }
+        let pawn = board[Square(4, 6)]!
+        let move = ChessMove(from: Square(4, 6), to: Square(4, 7),
+                             piece: pawn, promotionPiece: .queen)
+        let newBoard = engine.applyMove(move, to: board)
+        XCTAssertEqual(newBoard[Square(4, 7)]?.type, .queen)   // promoted to queen on e8
+        XCTAssertEqual(newBoard[Square(4, 7)]?.color, .white)
+        XCTAssertNil(newBoard[Square(4, 6)])                    // e7 cleared
+    }
+
+    // MARK: - isAttacked direct tests
+
+    func testIsAttacked_byBishop_diagonal() {
+        var board = ChessBoard()
+        for f in 0...7 { for r in 0...7 { board[Square(f, r)] = nil } }
+        board[Square(2, 0)] = ChessPiece(type: .bishop, color: .white)  // Bc1
+        XCTAssertTrue(engine.isAttacked(square: Square(4, 2), by: .white, on: board))   // e3 on diagonal
+        XCTAssertFalse(engine.isAttacked(square: Square(4, 0), by: .white, on: board))  // e1 not diagonal
+    }
+
+    func testIsAttacked_byRook_blockedByPiece() {
+        var board = ChessBoard()
+        for f in 0...7 { for r in 0...7 { board[Square(f, r)] = nil } }
+        board[Square(0, 0)] = ChessPiece(type: .rook, color: .black)   // Ra1 (black)
+        board[Square(3, 0)] = ChessPiece(type: .pawn, color: .black)   // blocker on d1
+        // e1 (4,0) is behind the blocker — rook cannot reach it
+        XCTAssertFalse(engine.isAttacked(square: Square(4, 0), by: .black, on: board))
+        // d1 (3,0) itself is not attacked (occupied by own piece, but that's the blocker)
+        XCTAssertTrue(engine.isAttacked(square: Square(2, 0), by: .black, on: board))   // c1 is attacked
+    }
+
     // MARK: - Checkmate and stalemate
 
     func testLegalMoves_checkmate_returnsEmpty() {
