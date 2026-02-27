@@ -75,7 +75,7 @@ class ChessGame: ObservableObject, Codable, @unchecked Sendable {
         self.blackPlayer = blackPlayer
         self.startDate = Date()
         self.timeControl = timeControl
-        positionHistory.append(board.fen)
+        positionHistory.append(positionKey(for: board.fen))
     }
 
     init(fen: String, whitePlayer: String = "Player", blackPlayer: String = "AI Coach") {
@@ -83,7 +83,7 @@ class ChessGame: ObservableObject, Codable, @unchecked Sendable {
         self.whitePlayer = whitePlayer
         self.blackPlayer = blackPlayer
         self.startDate = Date()
-        positionHistory.append(board.fen)
+        positionHistory.append(positionKey(for: board.fen))
     }
 
     var currentMove: Int { moves.count }
@@ -95,7 +95,7 @@ class ChessGame: ObservableObject, Codable, @unchecked Sendable {
         updatedMove.notation = ChessEngineService.shared.generateNotation(move, on: board)
         moves.append(updatedMove)
         currentMoveIndex = moves.count - 1
-        positionHistory.append(board.fen)
+        positionHistory.append(positionKey(for: board.fen))
         updateStatus()
     }
 
@@ -126,8 +126,15 @@ class ChessGame: ObservableObject, Codable, @unchecked Sendable {
         }
     }
 
+    /// Position key: first 4 FEN fields (piece placement, active color, castling, en-passant).
+    /// Excludes the half-move clock and full-move number so that the same position reached
+    /// via different move counts is still recognised as a repetition.
+    private func positionKey(for fen: String) -> String {
+        fen.split(separator: " ").prefix(4).joined(separator: " ")
+    }
+
     private func isThreefoldRepetition() -> Bool {
-        let current = board.fen
+        let current = positionKey(for: board.fen)
         let count = positionHistory.filter { $0 == current }.count
         return count >= 3
     }
