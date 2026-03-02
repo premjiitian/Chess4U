@@ -160,6 +160,18 @@ platform :ios do
     )
   end
 
+  desc "Capture App Store screenshots on simulators"
+  lane :screenshots do
+    capture_screenshots(
+      project:                    "Chess4U.xcodeproj",
+      scheme:                     "Chess4UUITests",
+      output_directory:           "fastlane/screenshots",
+      clear_previous_screenshots: true,
+      override_status_bar:        true,
+      derived_data_path:          "DerivedData"
+    )
+  end
+
   desc "Submit latest TestFlight build to App Store review"
   lane :release do
     key = api_key
@@ -167,7 +179,8 @@ platform :ios do
     upload_to_app_store(
       api_key:              key,
       skip_binary_upload:   true,          # reuse build already on TestFlight
-      skip_screenshots:     true,          # add screenshots to fastlane/screenshots/ to enable
+      skip_screenshots:     false,
+      screenshots_path:     "fastlane/screenshots",
       metadata_path:        "fastlane/metadata",
       force:                true,          # skip HTML preview prompt
       submit_for_review:    true,

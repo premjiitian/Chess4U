@@ -1,0 +1,40 @@
+name: Capture App Store Screenshots
+
+on:
+  workflow_dispatch:
+
+jobs:
+  screenshots:
+    name: Capture Screenshots
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      - name: Boot simulators
+        run: |
+          xcrun simctl boot "iPhone 16 Pro Max"  || true
+          xcrun simctl boot "iPhone 14 Plus"     || true
+          xcrun simctl boot "iPad Pro 13-inch (M4)" || true
+
+      - name: Capture screenshots
+        env:
+          DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
+        run: bundle exec fastlane screenshots
+
+      - name: Upload screenshots artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-store-screenshots
+          path: fastlane/screenshots/
+          retention-days: 30

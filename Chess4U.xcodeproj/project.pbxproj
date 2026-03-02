@@ -57,6 +57,9 @@
 		AA000026BB000026CC000026 /* ChessPuzzleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000025BB000025CC000025 /* ChessPuzzleTests.swift */; };
 		AA000028BB000028CC000028 /* PlayerBandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000027BB000027CC000027 /* PlayerBandTests.swift */; };
 		AA000030BB000030CC000030 /* SquareTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000029BB000029CC000029 /* SquareTests.swift */; };
+		BB100004CC100004DD100004 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA000011BB000011CC000011 /* XCTest.framework */; };
+		BB100005CC100005DD100005 /* Chess4UUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB100002CC100002DD100002 /* Chess4UUITests.swift */; };
+		BB100006CC100006DD100006 /* SnapshotHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB100003CC100003DD100003 /* SnapshotHelper.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -113,10 +116,20 @@
 		AA000025BB000025CC000025 /* ChessPuzzleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessPuzzleTests.swift; sourceTree = "<group>"; };
 		AA000027BB000027CC000027 /* PlayerBandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerBandTests.swift; sourceTree = "<group>"; };
 		AA000029BB000029CC000029 /* SquareTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SquareTests.swift; sourceTree = "<group>"; };
+		BB100001CC100001DD100001 /* Chess4UUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Chess4UUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB100002CC100002DD100002 /* Chess4UUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chess4UUITests.swift; sourceTree = "<group>"; };
+		BB100003CC100003DD100003 /* SnapshotHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotHelper.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXContainerItemProxy section */
 		AA000006BB000006CC000006 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 42AEFBAE01D2DFD981F7DA7D;
+			remoteInfo = Chess4U;
+		};
+		BB100011CC100011DD100011 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
 			proxyType = 1;
@@ -142,6 +155,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BB100008CC100008DD100008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB100004CC100004DD100004 /* XCTest.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -150,6 +171,7 @@
 			children = (
 				B11BA34D63C71E3E5D1803C0 /* Chess4U */,
 				AA000005BB000005CC000005 /* Chess4UTests */,
+				BB100009CC100009DD100009 /* Chess4UUITests */,
 				10DF28A84E55A2F741349FDF /* Products */,
 				44C3DDD32D4D067164048E8E /* AVFoundation.framework */,
 			);
@@ -160,6 +182,7 @@
 			children = (
 				625ACE7FA04888266A8808AD /* Chess4U.app */,
 				AA000004BB000004CC000004 /* Chess4UTests.xctest */,
+				BB100001CC100001DD100001 /* Chess4UUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -347,6 +370,15 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		BB100009CC100009DD100009 /* Chess4UUITests */ = {
+			isa = PBXGroup;
+			children = (
+				BB100002CC100002DD100002 /* Chess4UUITests.swift */,
+				BB100003CC100003DD100003 /* SnapshotHelper.swift */,
+			);
+			path = Chess4UUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -384,6 +416,23 @@
 			productReference = AA000004BB000004CC000004 /* Chess4UTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		BB100010CC100010DD100010 /* Chess4UUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB100015CC100015DD100015 /* Build configuration list for PBXNativeTarget "Chess4UUITests" */;
+			buildPhases = (
+				BB100007CC100007DD100007 /* Sources */,
+				BB100008CC100008DD100008 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BB100012CC100012DD100012 /* PBXTargetDependency */,
+			);
+			name = Chess4UUITests;
+			productName = Chess4UUITests;
+			productReference = BB100001CC100001DD100001 /* Chess4UUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -398,6 +447,10 @@
 						CreatedOnToolsVersion = 15.0;
 					};
 					AA000001BB000001CC000001 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = 42AEFBAE01D2DFD981F7DA7D;
+					};
+					BB100010CC100010DD100010 = {
 						CreatedOnToolsVersion = 15.0;
 						TestTargetID = 42AEFBAE01D2DFD981F7DA7D;
 					};
@@ -418,6 +471,7 @@
 			targets = (
 				42AEFBAE01D2DFD981F7DA7D /* Chess4U */,
 				AA000001BB000001CC000001 /* Chess4UTests */,
+				BB100010CC100010DD100010 /* Chess4UUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -495,6 +549,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BB100007CC100007DD100007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB100005CC100005DD100005 /* Chess4UUITests.swift in Sources */,
+				BB100006CC100006DD100006 /* SnapshotHelper.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -502,6 +565,11 @@
 			isa = PBXTargetDependency;
 			target = 42AEFBAE01D2DFD981F7DA7D /* Chess4U */;
 			targetProxy = AA000006BB000006CC000006 /* PBXContainerItemProxy */;
+		};
+		BB100012CC100012DD100012 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 42AEFBAE01D2DFD981F7DA7D /* Chess4U */;
+			targetProxy = BB100011CC100011DD100011 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -727,6 +795,42 @@
 			};
 			name = Release;
 		};
+		BB100013CC100013DD100013 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.chess4u.Chess4UUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Chess4U;
+			};
+			name = Debug;
+		};
+		BB100014CC100014DD100014 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.chess4u.Chess4UUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Chess4U;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -753,6 +857,15 @@
 			buildConfigurations = (
 				AA000009BB000009CC000009 /* Debug */,
 				AA000010BB000010CC000010 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB100015CC100015DD100015 /* Build configuration list for PBXNativeTarget "Chess4UUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB100013CC100013DD100013 /* Debug */,
+				BB100014CC100014DD100014 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
