@@ -9,7 +9,7 @@ on:
 
 jobs:
   submit:
-    name: Submit to App Store Review
+    name: Capture Screenshots & Submit to App Store Review
     runs-on: macos-14
     if: ${{ github.event.inputs.confirm == 'submit' }}
 
@@ -26,7 +26,25 @@ jobs:
           ruby-version: "3.2"
           bundler-cache: true
 
-      - name: Submit via Fastlane
+      - name: Boot simulators for screenshots
+        run: |
+          xcrun simctl boot "iPhone 16 Pro Max"     || true
+          xcrun simctl boot "iPhone 16 Plus"        || true
+          xcrun simctl boot "iPad Pro 13-inch (M4)" || true
+
+      - name: Capture screenshots
+        env:
+          DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
+        run: bundle exec fastlane screenshots
+
+      - name: Upload screenshots artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-store-screenshots
+          path: fastlane/screenshots/
+          retention-days: 30
+
+      - name: Submit to App Store
         env:
           APP_STORE_CONNECT_API_KEY_ID:     ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID:      ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
