@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class Chess4UUITests: XCTestCase {
 
     var app: XCUIApplication!
