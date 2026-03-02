@@ -23,8 +23,8 @@ jobs:
 
       - name: Boot simulators
         run: |
-          xcrun simctl boot "iPhone 16 Pro Max"  || true
-          xcrun simctl boot "iPhone 14 Plus"     || true
+          xcrun simctl boot "iPhone 16 Pro Max"    || true
+          xcrun simctl boot "iPhone 16 Plus"      || true
           xcrun simctl boot "iPad Pro 13-inch (M4)" || true
 
       - name: Capture screenshots
