@@ -130,8 +130,9 @@ platform :ios do
       keychain_password:       keychain_password
     )
 
-    # Version from git tag (v1.2.3 → 1.2.3), build from run number
-    version = (ENV["GITHUB_REF_NAME"] || "1.0.0").sub(/^v/, "")
+    # Version: from tag (v1.2.3 → 1.2.3), manual dispatch input, or fallback
+    ref = ENV["GITHUB_REF_NAME"] || ""
+    version = ref.start_with?("v") ? ref.sub(/^v/, "") : (ENV["VERSION"] || "1.0.3")
     build   = ENV["GITHUB_RUN_NUMBER"] || "1"
 
     increment_version_number(version_number: version)
