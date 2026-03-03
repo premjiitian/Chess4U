@@ -14,5 +14,8 @@ clear_previous_screenshots(true)
 
 override_status_bar(true)
 
+# Ensure mock data is seeded for every device (iPhone + iPad)
+launch_arguments(["-SCREENSHOT_MODE"])
+
 # Derived data to keep builds fast
 derived_data_path("DerivedData")

@@ -15,40 +15,68 @@ final class Chess4UUITests: XCTestCase {
     }
 
     func testTakeScreenshots() throws {
-        // ── Skip onboarding — mock data seeds a complete profile ─────────────
-        // Wait for main tab view to appear directly (profile is pre-seeded)
+        // ── Wait for main navigation to appear ───────────────────────────────
+        // On iPhone: TabView renders a tab bar at the bottom.
+        // On iPad (iOS 18): TabView may render an adaptive sidebar or top tab
+        // bar instead, so `tabBars` can be empty on regular-size iPad.
         let tabBar = app.tabBars.firstMatch
-        XCTAssert(tabBar.waitForExistence(timeout: 15), "Tab bar not found after mock data seed")
+        let dashboardAny = app.buttons
+            .matching(NSPredicate(format: "label CONTAINS 'Dashboard'"))
+            .firstMatch
+
+        let navAppeared = tabBar.waitForExistence(timeout: 15)
+            || dashboardAny.waitForExistence(timeout: 5)
+        XCTAssert(navAppeared, "Main navigation not found — onboarding may not have been skipped")
 
         // ── Capture screenshots ───────────────────────────────────────────────
-        // 1 — Dashboard
+        // 1 — Dashboard (already on this tab)
         snapshot("01_Dashboard")
 
         // 2 — Train
-        tabBar.buttons.element(boundBy: 1).tap()
+        navigateTo("Train")
         sleep(1)
         snapshot("02_TrainingHub")
 
         // 3 — Board
-        tabBar.buttons.element(boundBy: 2).tap()
+        navigateTo("Board")
         sleep(1)
         snapshot("03_Board")
 
         // 4 — Lessons
-        tabBar.buttons.element(boundBy: 3).tap()
+        navigateTo("Lessons")
         sleep(1)
         snapshot("04_Lessons")
 
         // 5 — Profile
-        tabBar.buttons.element(boundBy: 4).tap()
+        navigateTo("Profile")
         sleep(1)
         snapshot("05_Profile")
     }
 
     // MARK: - Helpers
 
-    private func tapButton(_ label: String, timeout: TimeInterval = 10) {
-        let btn = app.buttons[label]
-        if btn.waitForExistence(timeout: timeout) { btn.tap() }
+    /// Navigate to a tab by label. Handles:
+    ///  - iPhone tab bars (`tabBars.buttons["Label"]`)
+    ///  - iPad adaptive sidebars / top bars (any button whose label contains the text)
+    ///  - Toolbar items as a last resort
+    private func navigateTo(_ label: String) {
+        // Tab bar (iPhone, compact iPad)
+        let tabBar = app.tabBars.firstMatch
+        if tabBar.exists {
+            let btn = tabBar.buttons[label]
+            if btn.waitForExistence(timeout: 3) { btn.tap(); return }
+        }
+
+        // Sidebar / adaptive tab bar (regular-size iPad, iOS 18+)
+        let sidebarBtn = app.buttons
+            .matching(NSPredicate(format: "label CONTAINS %@", label))
+            .firstMatch
+        if sidebarBtn.waitForExistence(timeout: 3) { sidebarBtn.tap(); return }
+
+        // Toolbar fallback
+        let toolbarBtn = app.toolbars.buttons
+            .matching(NSPredicate(format: "label CONTAINS %@", label))
+            .firstMatch
+        if toolbarBtn.waitForExistence(timeout: 3) { toolbarBtn.tap() }
     }
 }
