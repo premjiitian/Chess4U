@@ -23,15 +23,54 @@ jobs:
           ruby-version: "3.2"
           bundler-cache: true
 
+      - name: Normalize API key to base64(PKCS8 PEM)
+        env:
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+        run: |
+          normalized=$(python3 - << 'PYEOF'
+          import base64, os, sys
+          from cryptography.hazmat.primitives import serialization
+          raw = os.environ.get('APP_STORE_CONNECT_API_KEY_BASE64', '')
+          if not raw:
+              print('[key-norm] APP_STORE_CONNECT_API_KEY_BASE64 is not set', file=sys.stderr)
+              sys.exit(1)
+          candidates = []
+          try:
+              stripped = ''.join(raw.split())
+              candidates.append(base64.b64decode(stripped, validate=True))
+          except Exception:
+              pass
+          candidates.append(raw.encode())
+          for i, data in enumerate(candidates):
+              try:
+                  key = serialization.load_pem_private_key(data, password=None)
+                  pem = key.private_bytes(
+                      serialization.Encoding.PEM,
+                      serialization.PrivateFormat.PKCS8,
+                      serialization.NoEncryption())
+                  print(base64.b64encode(pem).decode(), end='')
+                  sys.exit(0)
+              except Exception as e:
+                  print('[key-norm] attempt ' + str(i) + ' failed: ' + str(e), file=sys.stderr)
+          print('[key-norm] could not load key in any format', file=sys.stderr)
+          sys.exit(1)
+          PYEOF
+          )
+          echo "APP_STORE_CONNECT_API_KEY_BASE64=$normalized" >> "$GITHUB_ENV"
+
+      - name: Configure git identity for match
+        run: |
+          git config --global user.email "ci@chess4u.app"
+          git config --global user.name "Chess4U CI"
+
       - name: Release via Fastlane
         env:
-          MATCH_GIT_URL:                   ${{ secrets.MATCH_GIT_URL }}
-          MATCH_PASSWORD:                  ${{ secrets.MATCH_PASSWORD }}
-          GH_PAT:                          ${{ secrets.GH_PAT }}
-          DEVELOPMENT_TEAM:                ${{ secrets.DEVELOPMENT_TEAM }}
-          APP_STORE_CONNECT_API_KEY_ID:    ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          APP_STORE_CONNECT_ISSUER_ID:     ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          MATCH_GIT_URL:                    ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD:                   ${{ secrets.MATCH_PASSWORD }}
+          GH_PAT:                           ${{ secrets.GH_PAT }}
+          DEVELOPMENT_TEAM:                 ${{ secrets.DEVELOPMENT_TEAM }}
+          APP_STORE_CONNECT_API_KEY_ID:     ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID:      ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: bundle exec fastlane beta
 
       - name: Upload IPA as artifact

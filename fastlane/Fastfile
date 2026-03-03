@@ -118,10 +118,12 @@ platform :ios do
       add_to_search_list: true
     )
 
-    # Fetch certificates & provisioning profiles from the private certs repo
+    # Fetch (or create if missing) certificates & provisioning profiles.
+    # readonly: false lets match create certs automatically if the certs repo
+    # is empty, so a separate match-init run is not a hard prerequisite.
     match(
       type:                    "appstore",
-      readonly:                true,
+      readonly:                false,
       git_basic_authorization: git_auth,
       api_key:                 key,
       keychain_name:           keychain_name,
