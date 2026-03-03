@@ -12,7 +12,57 @@ class AppState: ObservableObject {
     private let persistence = PersistenceService.shared
 
     init() {
+        if ProcessInfo.processInfo.arguments.contains("-SCREENSHOT_MODE") {
+            seedScreenshotData()
+        }
         loadSavedData()
+    }
+
+    private func seedScreenshotData() {
+        let persistence = PersistenceService.shared
+        persistence.resetAllData()
+
+        var profile = PlayerProfile(
+            name: "Alex",
+            elo: 1450,
+            preferredTimeControl: .rapid,
+            playerType: .casual,
+            mainOpeningsWhite: ["Italian Game", "London System"],
+            mainDefensesBlack: ["Sicilian Defense"],
+            ratingTrend: .improving,
+            weaknesses: [.endgames, .calculation]
+        )
+        profile.sessionsCompleted = 23
+        profile.totalPuzzlesSolved = 127
+        profile.lastSessionDate = Date()
+        profile.tacticsAccuracy = 0.72
+        profile.openingAccuracy = 0.58
+        profile.endgameAccuracy = 0.45
+        profile.calculationScore = 0.63
+        profile.strategyScore = 0.51
+        persistence.savePlayerProfile(profile)
+        persistence.saveStreak(7)
+
+        let types: [TrainingType] = [.tactics, .openings, .endgame, .calculation]
+        let sessions: [TrainingSession] = (0..<7).map { i in
+            let solved = Int.random(in: 8...18)
+            let attempted = solved + Int.random(in: 0...4)
+            let correct = Int(Double(solved * 6) * Double.random(in: 0.85...1.0))
+            let total = correct + Int.random(in: 2...8)
+            let start = Calendar.current.date(byAdding: .day, value: -i, to: Date())!
+            let end = start.addingTimeInterval(Double.random(in: 900...1800))
+            return TrainingSession(
+                type: types[i % types.count],
+                playerBand: .bandC,
+                startDate: start,
+                endDate: end,
+                puzzlesSolved: solved,
+                puzzlesAttempted: attempted,
+                correctMoves: correct,
+                totalMoves: total
+            )
+        }
+        persistence.saveSessionHistory(sessions)
     }
 
     func loadSavedData() {
