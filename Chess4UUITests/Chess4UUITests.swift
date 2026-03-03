@@ -14,38 +14,45 @@ final class Chess4UUITests: XCTestCase {
 
     func testTakeScreenshots() throws {
         // ── Onboarding (4 pages) ─────────────────────────────────────────────
-        // Pages 0-2: tap "Next"
+        // Pages 0–2: tap "Next"
         for _ in 0..<3 {
             let next = app.buttons["Next"]
-            if next.waitForExistence(timeout: 4) { next.tap() }
+            if next.waitForExistence(timeout: 10) { next.tap() }
         }
         // Page 3: tap "Start My Training Journey"
         let startJourney = app.buttons["Start My Training Journey"]
-        if startJourney.waitForExistence(timeout: 4) { startJourney.tap() }
+        if startJourney.waitForExistence(timeout: 10) { startJourney.tap() }
 
         // ── Player Assessment (4 steps) ───────────────────────────────────────
-        // Step 0 (Basic Info): type a name, then Continue
-        let nameField = app.textFields.firstMatch
-        if nameField.waitForExistence(timeout: 3) {
+        // Step 0 (Basic Info): find name field by placeholder, type name, Continue.
+        // isCurrentStepValid requires playerName non-empty AND valid Elo (default "1200" ✓).
+        let nameField = app.textFields["Your name"]
+        if nameField.waitForExistence(timeout: 10) {
             nameField.tap()
             nameField.typeText("Alex")
         }
         tapButton("Continue")
 
-        // Step 1 (Play Style): Continue
+        // Step 1 (Play Style): always valid — just Continue
         tapButton("Continue")
 
-        // Step 2 (Weaknesses): Continue
+        // Step 2 (Weaknesses): isCurrentStepValid requires ≥1 weakness selected.
+        // Tap "Tactics" (label may include SF Symbol name, so use CONTAINS predicate).
+        let weaknessBtn = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] 'Tactics'")
+        ).firstMatch
+        if weaknessBtn.waitForExistence(timeout: 10) { weaknessBtn.tap() }
         tapButton("Continue")
 
-        // Step 3 (Openings): Start Training!
+        // Step 3 (Openings): always valid — tap "Start Training!"
         tapButton("Start Training!")
 
-        // ── Capture screenshots ───────────────────────────────────────────────
+        // ── Wait for main tab view ────────────────────────────────────────────
         let tabBar = app.tabBars.firstMatch
-        XCTAssert(tabBar.waitForExistence(timeout: 10), "Tab bar not found after onboarding")
+        XCTAssert(tabBar.waitForExistence(timeout: 15), "Tab bar not found after onboarding")
 
-        // 1 — Dashboard (initial tab)
+        // ── Capture screenshots ───────────────────────────────────────────────
+        // 1 — Dashboard
         snapshot("01_Dashboard")
 
         // 2 — Train
@@ -71,7 +78,7 @@ final class Chess4UUITests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func tapButton(_ label: String, timeout: TimeInterval = 4) {
+    private func tapButton(_ label: String, timeout: TimeInterval = 10) {
         let btn = app.buttons[label]
         if btn.waitForExistence(timeout: timeout) { btn.tap() }
     }
