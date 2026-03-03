@@ -14,25 +14,11 @@ on:
 jobs:
   release:
     name: Build, Sign & Upload to TestFlight
-    # TODO: switch to macos-16 + Xcode_26 once available on GitHub runners (required before April 28 2026)
-    # macos-14 used here because macos-15 lacks matching iOS simulator runtimes
-    # for both Xcode 16.2 (22C146) and 16.3 (22E235), causing actool to fail.
-    runs-on: macos-14
+    runs-on: macos-26
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Select Xcode
-        run: |
-          # Prefer Xcode 26 (Swift 6 + iOS 26 SDK, needed for April 28 deadline)
-          # then fall back to 16.2 (known-good on macos-14, shipped build 5).
-          if [ -d /Applications/Xcode_26.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.app
-          else
-            sudo xcode-select -s /Applications/Xcode_16.2.app
-          fi
-          xcodebuild -version
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
