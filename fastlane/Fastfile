@@ -184,15 +184,22 @@ platform :ios do
   lane :release do
     key = api_key
 
+    # Use the build number from the env (set by appstore.yml input or latest beta run)
+    build = ENV["BUILD_NUMBER"].to_s.strip
+    build = nil if build.empty?
+
     upload_to_app_store(
-      api_key:              key,
-      skip_binary_upload:   true,          # reuse build already on TestFlight
-      skip_screenshots:     false,
-      screenshots_path:     "fastlane/screenshots",
-      metadata_path:        "fastlane/metadata",
-      force:                true,          # skip HTML preview prompt
-      submit_for_review:    true,
-      automatic_release:    false,         # manual release after Apple approval
+      api_key:                key,
+      skip_binary_upload:     true,          # reuse build already on TestFlight
+      build_number:           build,         # nil → deliver picks latest processed build
+      price_tier:             0,             # Free
+      skip_screenshots:       false,
+      screenshots_path:       "fastlane/screenshots",
+      metadata_path:          "fastlane/metadata",
+      app_privacy_details:    "fastlane/metadata/app_privacy/app_privacy.json",
+      force:                  true,          # skip HTML preview prompt
+      submit_for_review:      true,
+      automatic_release:      false,         # manual release after Apple approval
       submission_information: {
         add_id_info_uses_idfa:                       false,
         export_compliance_uses_encryption:            false,
