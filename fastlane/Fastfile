@@ -138,13 +138,12 @@ platform :ios do
     increment_version_number(version_number: version)
     increment_build_number(build_number:   build)
 
-    # Switch to manual signing so xcodebuild uses the match-installed
-    # App Store profile. Match exports the profile name as an env var
-    # after downloading it — derive from that instead of hardcoding.
-    profile_env_key = "MATCH_PROVISIONING_PROFILE_APPSTORE_COM_CHESS4U_CHESS4U"
-    profile_name    = ENV.fetch(profile_env_key) do
-      UI.user_error!("#{profile_env_key} is not set — did 'match' run successfully?")
-    end
+    # Read the profile name match stored in lane_context after running.
+    # match 2.x populates MATCH_PROVISIONING_PROFILE_MAPPING in lane_context;
+    # ENV-based lookup is unreliable across match versions.
+    bundle_id    = "com.chess4u.Chess4U"
+    profile_name = lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING][bundle_id]
+    UI.user_error!("Profile for #{bundle_id} not found in match mapping — did match run successfully?") if profile_name.nil?
 
     update_code_signing_settings(
       use_automatic_signing: false,
