@@ -15,7 +15,9 @@ jobs:
   release:
     name: Build, Sign & Upload to TestFlight
     # TODO: switch to macos-16 + Xcode_26 once available on GitHub runners (required before April 28 2026)
-    runs-on: macos-15
+    # macos-14 used here because macos-15 lacks matching iOS simulator runtimes
+    # for both Xcode 16.2 (22C146) and 16.3 (22E235), causing actool to fail.
+    runs-on: macos-14
 
     steps:
       - name: Checkout repository
@@ -23,16 +25,12 @@ jobs:
 
       - name: Select Xcode
         run: |
-          # Xcode 16.3 on macos-15 is missing the iOS 18.4 simulator runtime,
-          # causing actool to fail compiling asset catalog thinned variants.
-          # Prefer Xcode 26 (future, for ITMS-90725 April 28 deadline), then
-          # fall back to 16.2 (known-good). Skip 16.3 until runtime is fixed.
+          # Prefer Xcode 26 (Swift 6 + iOS 26 SDK, needed for April 28 deadline)
+          # then fall back to 16.2 (known-good on macos-14, shipped build 5).
           if [ -d /Applications/Xcode_26.app ]; then
             sudo xcode-select -s /Applications/Xcode_26.app
-          elif [ -d /Applications/Xcode_16.2.app ]; then
-            sudo xcode-select -s /Applications/Xcode_16.2.app
           else
-            sudo xcode-select -s /Applications/Xcode_16.3.app
+            sudo xcode-select -s /Applications/Xcode_16.2.app
           fi
           xcodebuild -version
 
