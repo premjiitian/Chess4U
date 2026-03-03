@@ -27,22 +27,27 @@ struct MainTabView: View {
             DashboardView()
                 .tabItem { Label("Dashboard", systemImage: "house.fill") }
                 .tag(Tab.dashboard)
+                .accessibilityIdentifier("tab_dashboard")
 
             TrainingHubView()
                 .tabItem { Label("Train", systemImage: "bolt.fill") }
                 .tag(Tab.train)
+                .accessibilityIdentifier("tab_train")
 
             FreePlayView()
                 .tabItem { Label("Board", systemImage: "squareshape.split.2x2") }
                 .tag(Tab.board)
+                .accessibilityIdentifier("tab_board")
 
             LessonLibraryView()
                 .tabItem { Label("Lessons", systemImage: "books.vertical.fill") }
                 .tag(Tab.lessons)
+                .accessibilityIdentifier("tab_lessons")
 
             ProfileView()
                 .tabItem { Label("Profile", systemImage: "person.fill") }
                 .tag(Tab.profile)
+                .accessibilityIdentifier("tab_profile")
         }
         .accentColor(AppTheme.accent)
     }
