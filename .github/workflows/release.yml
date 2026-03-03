@@ -23,12 +23,16 @@ jobs:
 
       - name: Select Xcode
         run: |
+          # Xcode 16.3 on macos-15 is missing the iOS 18.4 simulator runtime,
+          # causing actool to fail compiling asset catalog thinned variants.
+          # Prefer Xcode 26 (future, for ITMS-90725 April 28 deadline), then
+          # fall back to 16.2 (known-good). Skip 16.3 until runtime is fixed.
           if [ -d /Applications/Xcode_26.app ]; then
             sudo xcode-select -s /Applications/Xcode_26.app
-          elif [ -d /Applications/Xcode_16.3.app ]; then
-            sudo xcode-select -s /Applications/Xcode_16.3.app
-          else
+          elif [ -d /Applications/Xcode_16.2.app ]; then
             sudo xcode-select -s /Applications/Xcode_16.2.app
+          else
+            sudo xcode-select -s /Applications/Xcode_16.3.app
           fi
           xcodebuild -version
 
