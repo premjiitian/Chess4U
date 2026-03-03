@@ -9,59 +9,70 @@ final class Chess4UUITests: XCTestCase {
         continueAfterFailure = false
         app = XCUIApplication()
         setupSnapshot(app)
-        app.launchArguments += ["--uitesting"]
         app.launch()
     }
 
     func testTakeScreenshots() throws {
-        // Walk through onboarding if it's showing
-        if app.buttons["Get Started"].waitForExistence(timeout: 4) {
-            app.buttons["Get Started"].tap()
+        // ── Onboarding (4 pages) ─────────────────────────────────────────────
+        // Pages 0-2: tap "Next"
+        for _ in 0..<3 {
+            let next = app.buttons["Next"]
+            if next.waitForExistence(timeout: 4) { next.tap() }
         }
-        // Pick skill level on assessment screen
-        let bandB = app.buttons["Band B (1000–1300)"]
-        if bandB.waitForExistence(timeout: 4) {
-            bandB.tap()
-        }
-        // Fill in name if present
+        // Page 3: tap "Start My Training Journey"
+        let startJourney = app.buttons["Start My Training Journey"]
+        if startJourney.waitForExistence(timeout: 4) { startJourney.tap() }
+
+        // ── Player Assessment (4 steps) ───────────────────────────────────────
+        // Step 0 (Basic Info): type a name, then Continue
         let nameField = app.textFields.firstMatch
-        if nameField.waitForExistence(timeout: 2) {
+        if nameField.waitForExistence(timeout: 3) {
             nameField.tap()
             nameField.typeText("Alex")
-            app.keyboards.buttons["Done"].tapIfExists()
         }
-        // Confirm assessment
-        for label in ["Start Training", "Continue", "Done"] {
-            let btn = app.buttons[label]
-            if btn.waitForExistence(timeout: 2) { btn.tap(); break }
-        }
+        tapButton("Continue")
 
-        // Wait for main tab bar to appear
+        // Step 1 (Play Style): Continue
+        tapButton("Continue")
+
+        // Step 2 (Weaknesses): Continue
+        tapButton("Continue")
+
+        // Step 3 (Openings): Start Training!
+        tapButton("Start Training!")
+
+        // ── Capture screenshots ───────────────────────────────────────────────
         let tabBar = app.tabBars.firstMatch
-        XCTAssert(tabBar.waitForExistence(timeout: 8))
+        XCTAssert(tabBar.waitForExistence(timeout: 10), "Tab bar not found after onboarding")
 
-        // 1 — Dashboard
+        // 1 — Dashboard (initial tab)
         snapshot("01_Dashboard")
 
-        // 2 — Training Hub
+        // 2 — Train
         tabBar.buttons.element(boundBy: 1).tap()
         sleep(1)
         snapshot("02_TrainingHub")
 
-        // 3 — Chess Board
+        // 3 — Board
         tabBar.buttons.element(boundBy: 2).tap()
         sleep(1)
         snapshot("03_Board")
 
-        // 4 — Profile
+        // 4 — Lessons
         tabBar.buttons.element(boundBy: 3).tap()
         sleep(1)
-        snapshot("04_Profile")
-    }
-}
+        snapshot("04_Lessons")
 
-private extension XCUIElement {
-    func tapIfExists() {
-        if exists { tap() }
+        // 5 — Profile
+        tabBar.buttons.element(boundBy: 4).tap()
+        sleep(1)
+        snapshot("05_Profile")
+    }
+
+    // MARK: - Helpers
+
+    private func tapButton(_ label: String, timeout: TimeInterval = 4) {
+        let btn = app.buttons[label]
+        if btn.waitForExistence(timeout: timeout) { btn.tap() }
     }
 }
