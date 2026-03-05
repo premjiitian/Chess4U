@@ -19,16 +19,14 @@ struct FreePlayView: View {
                 // Game status bar
                 statusBar
 
-                // Chess board
-                VStack {
-                    if vsMode == .twoPlayer || vm.game.board.activeColor == .white {
-                        ChessBoardView(vm: vm, interactive: true)
-                            .padding()
-                    } else {
-                        ChessBoardView(vm: vm, interactive: false)
-                            .padding()
-                    }
-                }
+                // Chess board — always a single view; interactive flag computed
+                // so the view identity is stable across turn changes, which
+                // prevents SwiftUI from unmounting/remounting on each AI move.
+                ChessBoardView(
+                    vm: vm,
+                    interactive: vsMode == .twoPlayer || vm.game.board.activeColor == .white
+                )
+                .padding()
                 .onChange(of: vm.game.moves.count) { _ in
                     if vsMode == .vsAI && vm.game.board.activeColor == .black {
                         vm.makeAIMove(depth: aiDepth)
@@ -67,6 +65,17 @@ struct FreePlayView: View {
         .onAppear {
             vm.settings = appState.settings
             vm.profile = appState.playerProfile
+        }
+        // Automatically prompt for post-game analysis when checkmate or stalemate.
+        .onChange(of: vm.game.status) { status in
+            // Offer post-game analysis whenever the game ends
+            switch status {
+            case .checkmate, .stalemate, .draw, .resigned:
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    showingAnalysis = true
+                }
+            default: break
+            }
         }
     }
 

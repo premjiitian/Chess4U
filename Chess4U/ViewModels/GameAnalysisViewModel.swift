@@ -17,14 +17,22 @@ class GameAnalysisViewModel: ObservableObject {
 
     func analyzeGame(_ game: ChessGame) {
         self.game = game
-        isAnalyzing = true
         boardVM = ChessBoardViewModel(profile: profile)
 
-        guard let profile = self.profile else { return }
+        // Build a default profile so analysis always runs even when the user
+        // hasn't completed onboarding yet — avoids the UI hanging on "Analyzing…".
+        let effectiveProfile = profile ?? PlayerProfile(
+            name: "Player", elo: 1000,
+            preferredTimeControl: .rapid, playerType: .casual,
+            mainOpeningsWhite: [], mainDefensesBlack: [],
+            ratingTrend: .stable, weaknesses: [.tactics]
+        )
+
+        isAnalyzing = true
         let aiCoach = self.aiCoach  // capture before leaving MainActor context
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let result = aiCoach.analyzeGame(game, profile: profile)
+            let result = aiCoach.analyzeGame(game, profile: effectiveProfile)
             DispatchQueue.main.async {
                 self?.analysis = result
                 self?.isAnalyzing = false

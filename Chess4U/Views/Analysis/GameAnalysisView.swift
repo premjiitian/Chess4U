@@ -4,7 +4,7 @@ struct GameAnalysisView: View {
     @EnvironmentObject var appState: AppState
     let game: ChessGame
     @StateObject private var vm = GameAnalysisViewModel()
-    @StateObject private var audioCoach = AudioCoachService.shared
+    @ObservedObject private var audioCoach = AudioCoachService.shared
 
     var body: some View {
         ScrollView {

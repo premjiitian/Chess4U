@@ -31,7 +31,15 @@ class TrainingViewModel: ObservableObject {
 
     // MARK: - Start Session
     func startSession(type: TrainingType) {
-        guard let profile = profile else { return }
+        // Use existing profile or a default so training is accessible immediately.
+        let effectiveProfile = profile ?? PlayerProfile(
+            name: "Player", elo: 1000,
+            preferredTimeControl: .rapid, playerType: .casual,
+            mainOpeningsWhite: [], mainDefensesBlack: [],
+            ratingTrend: .stable, weaknesses: [.tactics]
+        )
+        if profile == nil { self.profile = effectiveProfile }
+        let profile = effectiveProfile
         session = thoughtEngine.generateSession(type: type, profile: profile)
         showLesson = session?.conceptLesson != nil
         isSessionComplete = false

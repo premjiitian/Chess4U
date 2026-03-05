@@ -8,16 +8,18 @@ struct MainTabView: View {
         case dashboard = "Dashboard"
         case train = "Train"
         case board = "Board"
+        case analyze = "Analyze"
         case lessons = "Lessons"
         case profile = "Profile"
 
         var icon: String {
             switch self {
             case .dashboard: return "house.fill"
-            case .train: return "bolt.fill"
-            case .board: return "squareshape.split.2x2"
-            case .lessons: return "books.vertical.fill"
-            case .profile: return "person.fill"
+            case .train:     return "bolt.fill"
+            case .board:     return "squareshape.split.2x2"
+            case .analyze:   return "magnifyingglass"
+            case .lessons:   return "books.vertical.fill"
+            case .profile:   return "person.fill"
             }
         }
     }
@@ -38,6 +40,12 @@ struct MainTabView: View {
                 .tabItem { Label("Board", systemImage: "squareshape.split.2x2") }
                 .tag(Tab.board)
                 .accessibilityIdentifier("tab_board")
+
+            // New tab: import and analyze games from chess.com / Lichess
+            ImportGamesView()
+                .tabItem { Label("Analyze", systemImage: "magnifyingglass") }
+                .tag(Tab.analyze)
+                .accessibilityIdentifier("tab_analyze")
 
             LessonLibraryView()
                 .tabItem { Label("Lessons", systemImage: "books.vertical.fill") }

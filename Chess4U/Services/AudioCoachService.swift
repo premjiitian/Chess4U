@@ -14,6 +14,23 @@ final class AudioCoachService: NSObject, ObservableObject, AVSpeechSynthesizerDe
     override init() {
         super.init()
         synthesizer.delegate = self
+        configureAudioSession()
+    }
+
+    private func configureAudioSession() {
+        do {
+            // .playback keeps audio alive when screen locks;
+            // .spokenAudio pauses background music for clearer coach speech;
+            // .duckOthers lowers other audio rather than stopping it.
+            try AVAudioSession.sharedInstance().setCategory(
+                .playback,
+                mode: .spokenAudio,
+                options: [.duckOthers, .allowBluetooth]
+            )
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("[AudioCoachService] AVAudioSession configuration failed: \(error)")
+        }
     }
 
     // MARK: - Speak

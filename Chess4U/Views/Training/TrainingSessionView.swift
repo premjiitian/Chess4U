@@ -190,7 +190,7 @@ struct TrainingSessionView: View {
 struct ConceptLessonView: View {
     let lesson: ConceptLesson
     let onContinue: () -> Void
-    @StateObject private var audioCoach = AudioCoachService.shared
+    @ObservedObject private var audioCoach = AudioCoachService.shared
 
     var body: some View {
         ScrollView {

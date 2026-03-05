@@ -3,6 +3,8 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @State private var settings: AppSettings = AppSettings()
+    @State private var chesscomUsername: String = ""
+    @State private var lichessUsername: String = ""
 
     var body: some View {
         Form {
@@ -124,6 +126,37 @@ struct SettingsView: View {
                 Text("Appearance")
             }
 
+            // Connected Accounts (chess.com / Lichess)
+            Section {
+                HStack {
+                    Image(systemName: "network")
+                        .foregroundColor(.green)
+                        .frame(width: 24)
+                    TextField("chess.com username", text: $chesscomUsername)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onChange(of: chesscomUsername) { v in
+                            UserDefaults.standard.set(v, forKey: "chesscomUsername")
+                        }
+                }
+                HStack {
+                    Image(systemName: "l.circle.fill")
+                        .foregroundColor(.purple)
+                        .frame(width: 24)
+                    TextField("Lichess username", text: $lichessUsername)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onChange(of: lichessUsername) { v in
+                            UserDefaults.standard.set(v, forKey: "lichessUsername")
+                        }
+                }
+                Text("Used in the Analyze tab to fetch your recent games.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } header: {
+                Text("Connected Accounts")
+            }
+
             // About
             Section {
                 HStack {
@@ -145,6 +178,8 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .onAppear {
             settings = appState.settings
+            chesscomUsername = UserDefaults.standard.string(forKey: "chesscomUsername") ?? ""
+            lichessUsername  = UserDefaults.standard.string(forKey: "lichessUsername")  ?? ""
         }
     }
 }

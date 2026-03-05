@@ -185,13 +185,25 @@ struct ChessSquareView: View {
                 }
             }
 
-            // Piece
+            // Piece — rendered with high-contrast outline so white pieces are
+            // always visible on light squares and black pieces on dark squares.
             if let piece = piece {
-                Text(piece.symbolForColor)
-                    .font(.system(size: squareSize * 0.78))
-                    .minimumScaleFactor(0.5)
-                    .shadow(color: piece.color == .white ? .black.opacity(0.15) : .clear,
-                            radius: 1, x: 0, y: 1)
+                let fontSize = squareSize * (piece.type == .pawn ? 0.64 : 0.78)
+                ZStack {
+                    // Blurred dark silhouette creates a natural outline/border
+                    // that makes white pieces pop against any square color.
+                    Text(piece.symbolForColor)
+                        .font(.system(size: fontSize))
+                        .foregroundColor(Color(white: 0.05).opacity(piece.color == .white ? 0.75 : 0.35))
+                        .blur(radius: squareSize * 0.04)
+                    // Primary glyph layer with explicit piece-color foreground
+                    Text(piece.symbolForColor)
+                        .font(.system(size: fontSize))
+                        .minimumScaleFactor(0.5)
+                        .foregroundColor(piece.color == .white
+                            ? Color(white: 0.97)
+                            : Color(white: 0.06))
+                }
             }
         }
     }
