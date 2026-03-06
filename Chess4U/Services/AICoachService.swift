@@ -8,6 +8,7 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
 
     @Published var currentAdvice: String = ""
     @Published var isThinking: Bool = false
+    var uiMode: UIMode = .study
 
     // MARK: - Generate Position Commentary (Silman's Imbalances Methodology)
     func generateCommentary(for board: ChessBoard, profile: PlayerProfile) -> String {
@@ -96,6 +97,11 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
     }
 
     private func generatePlan(imbalances: [String], board: ChessBoard, profile: PlayerProfile, legalMoves: [ChessMove]) -> String {
+        // Kids mode — use encouraging, age-appropriate language
+        if uiMode == .kids {
+            return generateKidsFriendlyPlan(board: board, legalMoves: legalMoves)
+        }
+
         let blunderCheck = TreeOfThoughtEngine.shared.blunderCheckQuestions(for: board)
         let questions = blunderCheck.prefix(2).joined(separator: " ")
 
@@ -112,6 +118,24 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
         case .bandE:
             return "💡 Silman's method: identify ALL imbalances, then make a plan that exploits the most important one.\n\(questions)"
         }
+    }
+
+    private func generateKidsFriendlyPlan(board: ChessBoard, legalMoves: [ChessMove]) -> String {
+        let engine = ChessEngineService.shared
+        let isCheck = engine.isInCheck(board: board, color: board.activeColor)
+
+        if isCheck {
+            return "🚨 Oh no! Your king is being attacked! You need to help your king escape — move it to a safe spot, block the attack, or capture the attacker!"
+        }
+
+        let encouragements = [
+            "You're doing amazing! Think carefully — can any of your pieces capture an enemy piece safely? ♟️",
+            "Great thinking so far! Look for a knight jump or a sneaky bishop move! 🐴",
+            "You've got this! Try to move your pieces toward the center of the board! 🎯",
+            "Superstar move coming! Think: which piece hasn't moved yet? Get it into the game! ⭐",
+            "Chess champion in the making! Can you put the opponent's king in danger? 👑",
+        ]
+        return encouragements.randomElement()!
     }
 
     // MARK: - Generate Hint
@@ -287,6 +311,23 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
         let accuracyStr = String(format: "%.1f", accuracy)
         let mistakeCount = mistakes.count
         let blunders = mistakes.filter { $0.quality == .blunder }.count
+
+        if uiMode == .kids {
+            var summary = "⭐ You scored \(accuracyStr)% accuracy — "
+            if accuracy >= 80 {
+                summary += "that's INCREDIBLE! You're a chess superstar! 🏆\n"
+            } else if accuracy >= 60 {
+                summary += "great effort! You're getting better every game! 🌟\n"
+            } else {
+                summary += "keep practicing! Every chess master started just like you! 💪\n"
+            }
+            if mistakeCount == 0 {
+                summary += "WOW — zero mistakes! You're unstoppable!"
+            } else {
+                summary += "You made \(mistakeCount) mistake\(mistakeCount == 1 ? "" : "s") — let's learn from them and come back even stronger!"
+            }
+            return summary
+        }
 
         var summary = "Game Accuracy: \(accuracyStr)%\n"
         summary += "Critical mistakes: \(mistakeCount) (\(blunders) blunders)\n\n"

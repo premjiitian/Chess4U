@@ -105,6 +105,13 @@ struct OnboardingView: View {
                         }
                     }
 
+                    // Guest mode — always visible
+                    Button("Play as Guest") {
+                        createGuestProfile()
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
                     if currentPage > 0 {
                         Button("Back") {
                             withAnimation { currentPage -= 1 }
@@ -117,6 +124,25 @@ struct OnboardingView: View {
             }
         }
         .navigationBarHidden(true)
+    }
+
+    func createGuestProfile() {
+        var profile = PlayerProfile(
+            name: "Guest",
+            elo: 800,
+            preferredTimeControl: .rapid,
+            playerType: .casual,
+            mainOpeningsWhite: [],
+            mainDefensesBlack: [],
+            ratingTrend: .stable,
+            weaknesses: [.tactics, .openings]
+        )
+        profile.tacticsAccuracy = 0.3
+        profile.openingAccuracy = 0.3
+        profile.endgameAccuracy = 0.3
+        profile.calculationScore = 0.3
+        profile.strategyScore = 0.3
+        appState.savePlayerProfile(profile)
     }
 }
 

@@ -24,39 +24,42 @@ struct MainTabView: View {
         }
     }
 
+    private var isKidsMode: Bool {
+        appState.settings.uiMode == .kids
+    }
+
     var body: some View {
         TabView(selection: $selectedTab) {
             DashboardView()
-                .tabItem { Label("Dashboard", systemImage: "house.fill") }
+                .tabItem { Label(isKidsMode ? "Home" : "Dashboard", systemImage: isKidsMode ? "house.fill" : "house.fill") }
                 .tag(Tab.dashboard)
                 .accessibilityIdentifier("tab_dashboard")
 
             TrainingHubView()
-                .tabItem { Label("Train", systemImage: "bolt.fill") }
+                .tabItem { Label(isKidsMode ? "Practice" : "Train", systemImage: isKidsMode ? "star.fill" : "bolt.fill") }
                 .tag(Tab.train)
                 .accessibilityIdentifier("tab_train")
 
             FreePlayView()
-                .tabItem { Label("Board", systemImage: "squareshape.split.2x2") }
+                .tabItem { Label(isKidsMode ? "Play" : "Board", systemImage: "squareshape.split.2x2") }
                 .tag(Tab.board)
                 .accessibilityIdentifier("tab_board")
 
-            // New tab: import and analyze games from chess.com / Lichess
             ImportGamesView()
                 .tabItem { Label("Analyze", systemImage: "magnifyingglass") }
                 .tag(Tab.analyze)
                 .accessibilityIdentifier("tab_analyze")
 
             LessonLibraryView()
-                .tabItem { Label("Lessons", systemImage: "books.vertical.fill") }
+                .tabItem { Label(isKidsMode ? "Learn" : "Lessons", systemImage: isKidsMode ? "lightbulb.fill" : "books.vertical.fill") }
                 .tag(Tab.lessons)
                 .accessibilityIdentifier("tab_lessons")
 
             ProfileView()
-                .tabItem { Label("Profile", systemImage: "person.fill") }
+                .tabItem { Label(isKidsMode ? "Me" : "Profile", systemImage: "person.fill") }
                 .tag(Tab.profile)
                 .accessibilityIdentifier("tab_profile")
         }
-        .accentColor(AppTheme.accent)
+        .accentColor(isKidsMode ? .orange : AppTheme.accent)
     }
 }

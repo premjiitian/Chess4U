@@ -20,6 +20,7 @@ struct GameAnalysisView: View {
         .background(Color(.systemGroupedBackground))
         .onAppear {
             vm.profile = appState.playerProfile
+            vm.uiMode = appState.settings.uiMode
             vm.analyzeGame(game)
         }
     }

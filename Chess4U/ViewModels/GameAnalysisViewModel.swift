@@ -14,6 +14,7 @@ class GameAnalysisViewModel: ObservableObject {
     private let aiCoach = AICoachService.shared
     private let audioCoach = AudioCoachService.shared
     var profile: PlayerProfile?
+    var uiMode: UIMode = .study
 
     func analyzeGame(_ game: ChessGame) {
         self.game = game
@@ -30,6 +31,7 @@ class GameAnalysisViewModel: ObservableObject {
 
         isAnalyzing = true
         let aiCoach = self.aiCoach  // capture before leaving MainActor context
+        aiCoach.uiMode = self.uiMode
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let result = aiCoach.analyzeGame(game, profile: effectiveProfile)

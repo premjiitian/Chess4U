@@ -208,9 +208,11 @@ struct DailyPuzzleView: View {
     var celebrationOverlay: some View {
         Group {
             if showCelebration {
-                ConfettiOverlay {
-                    showCelebration = false
-                }
+                ConfettiOverlay(
+                    onDismiss: { showCelebration = false },
+                    isKidsMode: appState.settings.uiMode == .kids,
+                    xpEarned: appState.settings.uiMode == .kids ? 100 : 50
+                )
             }
         }
     }
@@ -296,15 +298,20 @@ struct DailyPuzzleView: View {
 }
 
 // MARK: - Confetti Overlay
-/// Simple star-burst confetti animation shown on puzzle completion.
+/// Star-burst confetti animation shown on puzzle completion.
+/// In Kids Mode (uiMode == .kids) it adds XP reward display and larger celebratory text.
 struct ConfettiOverlay: View {
     let onDismiss: () -> Void
+    var isKidsMode: Bool = false
+    var xpEarned: Int = 50
+
     @State private var particles: [ConfettiParticle] = []
     @State private var opacity: Double = 1.0
+    @State private var scale: CGFloat = 0.5
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.01)
+            Color.black.opacity(isKidsMode ? 0.55 : 0.01)
                 .ignoresSafeArea()
                 .onTapGesture { onDismiss() }
 
@@ -316,14 +323,34 @@ struct ConfettiOverlay: View {
                     .opacity(opacity)
             }
 
-            VStack(spacing: 16) {
-                Text("🎉")
-                    .font(.system(size: 72))
-                Text("Puzzle Solved!")
-                    .font(.title)
+            VStack(spacing: isKidsMode ? 20 : 16) {
+                Text(isKidsMode ? "🌟🏆🌟" : "🎉")
+                    .font(.system(size: isKidsMode ? 88 : 72))
+                    .scaleEffect(scale)
+
+                Text(isKidsMode ? "AMAZING!" : "Puzzle Solved!")
+                    .font(isKidsMode ? .system(size: 36, weight: .black) : .title)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                     .shadow(radius: 4)
+
+                if isKidsMode {
+                    HStack(spacing: 6) {
+                        Image(systemName: "star.fill")
+                            .foregroundColor(.yellow)
+                        Text("+\(xpEarned) XP")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.yellow)
+                        Image(systemName: "star.fill")
+                            .foregroundColor(.yellow)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(Color.black.opacity(0.3))
+                    .cornerRadius(20)
+                }
+
                 Text("Tap to continue")
                     .font(.subheadline)
                     .foregroundColor(.white.opacity(0.8))
@@ -332,6 +359,9 @@ struct ConfettiOverlay: View {
         }
         .onAppear {
             spawnParticles()
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                scale = 1.0
+            }
             withAnimation(.easeOut(duration: 2.5).delay(1.5)) {
                 opacity = 0
             }
@@ -345,10 +375,11 @@ struct ConfettiOverlay: View {
         let colors: [Color] = [.red, .orange, .yellow, .green, .blue, .purple, .pink]
         let screenW = UIScreen.main.bounds.width
         let screenH = UIScreen.main.bounds.height
-        particles = (0..<80).map { _ in
+        let count = isKidsMode ? 120 : 80
+        particles = (0..<count).map { _ in
             ConfettiParticle(
                 color: colors.randomElement()!,
-                size: CGFloat.random(in: 6...14),
+                size: CGFloat.random(in: isKidsMode ? 8...18 : 6...14),
                 position: CGPoint(x: CGFloat.random(in: 0...screenW),
                                   y: CGFloat.random(in: 0...screenH))
             )
