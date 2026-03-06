@@ -27,6 +27,11 @@ struct DashboardView: View {
                             .frame(height: 220)
                     }
 
+                    // Weakness Insight
+                    if let profile = appState.playerProfile, !profile.weakestThemes.isEmpty {
+                        weaknessInsightCard(profile: profile)
+                    }
+
                     // Recommended Training
                     recommendedTrainingCard
 
@@ -268,6 +273,71 @@ struct DashboardView: View {
                         DayPlanCard(plan: day)
                     }
                 }
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+    }
+
+    func weaknessInsightCard(profile: PlayerProfile) -> some View {
+        let themes = Array(profile.weakestThemes.prefix(2))
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.red)
+                Text("Focus Areas")
+                    .font(.headline)
+                Spacer()
+                Text("Data-driven")
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(6)
+            }
+
+            ForEach(themes, id: \.self) { theme in
+                let attempts = profile.themeAttempts[theme.rawValue] ?? 0
+                let solved   = profile.themeSolved[theme.rawValue] ?? 0
+                let pct      = attempts > 0 ? Double(solved) / Double(attempts) : 0.0
+
+                HStack(spacing: 14) {
+                    Text(theme.icon)
+                        .font(.title3)
+                        .frame(width: 40, height: 40)
+                        .background(Color.red.opacity(0.8))
+                        .cornerRadius(10)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(theme.rawValue)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                        Text("\(Int(pct * 100))% accuracy · \(attempts) attempts")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        ProgressView(value: pct)
+                            .tint(.red)
+                    }
+
+                    Spacer()
+
+                    NavigationLink(destination: TrainingSessionView(trainingType: .tactics)) {
+                        Text("Practice")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.red)
+                            .cornerRadius(8)
+                    }
+                }
+                .padding(10)
+                .background(Color.red.opacity(0.05))
+                .cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.2)))
             }
         }
         .padding()

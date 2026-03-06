@@ -20,6 +20,14 @@ struct ProfileView: View {
                         // Skill Breakdown
                         skillBreakdown(profile)
 
+                        // Puzzle Theme Accuracy
+                        if !profile.themeAttempts.isEmpty {
+                            themeAccuracySection(profile)
+                        }
+
+                        // Opening Mastery
+                        openingMasterySection(profile)
+
                         // Training History
                         trainingHistory
 
@@ -175,6 +183,141 @@ struct ProfileView: View {
         .padding()
         .background(Color(.systemBackground))
         .cornerRadius(16)
+    }
+
+    func themeAccuracySection(_ profile: PlayerProfile) -> some View {
+        let themes = PuzzleTheme.allCases
+            .filter { (profile.themeAttempts[$0.rawValue] ?? 0) >= 1 }
+            .sorted { profile.accuracy(for: $0) < profile.accuracy(for: $1) }
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Image(systemName: "chart.bar.doc.horizontal")
+                    .foregroundColor(.indigo)
+                Text("Puzzle Theme Accuracy")
+                    .font(.headline)
+            }
+
+            ForEach(themes.prefix(6), id: \.self) { theme in
+                let attempts = profile.themeAttempts[theme.rawValue] ?? 0
+                let solved   = profile.themeSolved[theme.rawValue] ?? 0
+                let pct      = attempts > 0 ? Double(solved) / Double(attempts) : 0.0
+                let color: Color = pct >= 0.7 ? .green : pct >= 0.4 ? .orange : .red
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(theme.icon)
+                            .font(.caption)
+                        Text(theme.rawValue)
+                            .font(.subheadline)
+                        Spacer()
+                        Text("\(solved)/\(attempts)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        Text("\(Int(pct * 100))%")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(color)
+                    }
+                    ProgressView(value: pct)
+                        .tint(color)
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+    }
+
+    func openingMasterySection(_ profile: PlayerProfile) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Image(systemName: "book.fill")
+                    .foregroundColor(.blue)
+                Text("Opening Mastery")
+                    .font(.headline)
+                Spacer()
+                Text("\(profile.openingStats.count) tracked")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            if profile.openingStats.isEmpty {
+                HStack {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.secondary)
+                    Text("Complete opening training sessions to track your mastery.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGroupedBackground))
+                .cornerRadius(10)
+            } else {
+                let sorted = profile.openingStats
+                    .sorted { $0.value.scorePercent > $1.value.scorePercent }
+
+                ForEach(sorted.prefix(6), id: \.key) { name, record in
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(name)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Spacer()
+                            Text("\(Int(record.scorePercent * 100))%")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(scoreColor(record.scorePercent))
+                            Text("(\(record.gamesPlayed)g)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+
+                        // W/D/L bar
+                        GeometryReader { geo in
+                            let total = max(record.gamesPlayed, 1)
+                            let wFrac = CGFloat(record.wins) / CGFloat(total)
+                            let dFrac = CGFloat(record.draws) / CGFloat(total)
+                            let lFrac = CGFloat(record.losses) / CGFloat(total)
+                            HStack(spacing: 0) {
+                                if record.wins > 0 {
+                                    Color.green.frame(width: geo.size.width * wFrac)
+                                }
+                                if record.draws > 0 {
+                                    Color.gray.opacity(0.5).frame(width: geo.size.width * dFrac)
+                                }
+                                if record.losses > 0 {
+                                    Color.red.opacity(0.7).frame(width: geo.size.width * lFrac)
+                                }
+                            }
+                            .frame(height: 6)
+                            .cornerRadius(3)
+                        }
+                        .frame(height: 6)
+
+                        HStack(spacing: 10) {
+                            Label("\(record.wins)W", systemImage: "arrow.up")
+                                .font(.caption2).foregroundColor(.green)
+                            Label("\(record.draws)D", systemImage: "equal")
+                                .font(.caption2).foregroundColor(.secondary)
+                            Label("\(record.losses)L", systemImage: "arrow.down")
+                                .font(.caption2).foregroundColor(.red)
+                        }
+                    }
+                    .padding(10)
+                    .background(Color(.systemGroupedBackground))
+                    .cornerRadius(10)
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+    }
+
+    func scoreColor(_ score: Double) -> Color {
+        score >= 0.6 ? .green : score >= 0.4 ? .orange : .red
     }
 
     var trainingHistory: some View {

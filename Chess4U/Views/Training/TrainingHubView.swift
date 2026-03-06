@@ -7,6 +7,12 @@ struct TrainingHubView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
+                    // Coach Alert: pattern-driven suggestion
+                    if let profile = appState.playerProfile,
+                       let topWeakness = profile.weakestThemes.first {
+                        coachAlertBanner(profile: profile, theme: topWeakness)
+                    }
+
                     // Quick Start
                     quickStartSection
 
@@ -22,6 +28,86 @@ struct TrainingHubView: View {
             .navigationTitle("Training")
         }
         .navigationViewStyle(.stack)
+    }
+
+    func trainingTypeForWeakness(_ theme: PuzzleTheme) -> TrainingType {
+        switch theme {
+        case .fork, .pin, .skewer, .discoveredAttack, .doubleCheck,
+             .queenSacrifice, .deflection, .decoy, .xRayAttack, .combination,
+             .mateInOne, .mateInTwo, .mateInThree, .backRankMate, .smotheredMate:
+            return .tactics
+        case .endgameTechnique, .passedPawn, .zugzwang:
+            return .endgame
+        case .openingTrap:
+            return .openings
+        case .middlegameTactics:
+            return .middlegame
+        }
+    }
+
+    func coachAlertBanner(profile: PlayerProfile, theme: PuzzleTheme) -> some View {
+        let trainingType = trainingTypeForWeakness(theme)
+        let attempts  = profile.themeAttempts[theme.rawValue] ?? 0
+        let solved    = profile.themeSolved[theme.rawValue] ?? 0
+        let pct       = attempts > 0 ? Double(solved) / Double(attempts) : 0.0
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "brain.head.profile")
+                    .foregroundColor(.orange)
+                    .font(.headline)
+                Text("Coach Alert")
+                    .font(.headline)
+                    .foregroundColor(.orange)
+                Spacer()
+                Text("Pattern Detected")
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.orange.opacity(0.15))
+                    .cornerRadius(6)
+            }
+
+            HStack(spacing: 14) {
+                Text(theme.icon)
+                    .font(.title2)
+                    .frame(width: 48, height: 48)
+                    .background(Color.orange)
+                    .cornerRadius(12)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("You're struggling with \(theme.rawValue)")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    Text("\(Int(pct * 100))% accuracy over \(attempts) attempts")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    ProgressView(value: pct)
+                        .tint(.orange)
+                }
+
+                Spacer()
+            }
+
+            NavigationLink(destination: TrainingSessionView(trainingType: trainingType)) {
+                HStack {
+                    Image(systemName: "bolt.fill")
+                    Text("Fix It Now · \(trainingType.rawValue)")
+                        .fontWeight(.semibold)
+                }
+                .font(.subheadline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.orange)
+                .cornerRadius(12)
+            }
+        }
+        .padding()
+        .background(Color.orange.opacity(0.07))
+        .cornerRadius(16)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.orange.opacity(0.3), lineWidth: 1))
     }
 
     var quickStartSection: some View {
