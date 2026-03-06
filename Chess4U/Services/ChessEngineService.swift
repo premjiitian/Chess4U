@@ -306,24 +306,160 @@ final class ChessEngineService: @unchecked Sendable {
     }
 
     // MARK: - Position Evaluation
+    /// Comprehensive evaluation incorporating:
+    /// - Material balance with piece-square tables
+    /// - Pawn structure (doubled, isolated, passed pawns)
+    /// - King safety (open files near king, pawn shield)
+    /// - Piece mobility (number of legal moves)
+    /// - Bishop pair bonus
+    /// Based on Silman's imbalance methodology + classical evaluation theory.
     func evaluate(board: ChessBoard) -> Int {
         var score = 0
-        let pieceValues = [PieceType.pawn: 100, .knight: 320, .bishop: 330,
-                           .rook: 500, .queen: 900, .king: 20000]
+        let pieceValues: [PieceType: Int] = [
+            .pawn: 100, .knight: 320, .bishop: 330,
+            .rook: 500, .queen: 900, .king: 20000
+        ]
+
+        var whitePawnFiles: [Int] = []
+        var blackPawnFiles: [Int] = []
+        var whiteBishops = 0, blackBishops = 0
 
         for f in 0...7 {
             for r in 0...7 {
                 guard let piece = board.squares[f][r] else { continue }
                 let value = pieceValues[piece.type] ?? 0
                 let pst = pieceSquareBonus(piece: piece, file: f, rank: r)
-                if piece.color == .white {
-                    score += value + pst
-                } else {
-                    score -= value + pst
+                let sign = piece.color == .white ? 1 : -1
+                score += sign * (value + pst)
+
+                if piece.type == .pawn {
+                    if piece.color == .white { whitePawnFiles.append(f) }
+                    else { blackPawnFiles.append(f) }
+                }
+                if piece.type == .bishop {
+                    if piece.color == .white { whiteBishops += 1 }
+                    else { blackBishops += 1 }
                 }
             }
         }
+
+        // --- Pawn Structure ---
+        // Doubled pawns: -20 per extra pawn on same file
+        score += pawnStructurePenalty(pawnFiles: whitePawnFiles, color: .white)
+        score -= pawnStructurePenalty(pawnFiles: blackPawnFiles, color: .black)
+
+        // Isolated pawns: -15 per pawn with no friendly pawn on adjacent files
+        score += isolatedPawnPenalty(pawnFiles: whitePawnFiles, sign: 1)
+        score += isolatedPawnPenalty(pawnFiles: blackPawnFiles, sign: -1)
+
+        // Passed pawns: +20 per rank advanced (bonus for advanced passers)
+        score += passedPawnBonus(board: board, color: .white, sign: 1)
+        score += passedPawnBonus(board: board, color: .black, sign: -1)
+
+        // --- Bishop Pair Bonus (+50) ---
+        if whiteBishops >= 2 { score += 50 }
+        if blackBishops >= 2 { score -= 50 }
+
+        // --- King Safety ---
+        score += kingSafety(board: board, color: .white, sign: 1)
+        score += kingSafety(board: board, color: .black, sign: -1)
+
+        // --- Mobility ---
+        let whiteMobility = legalMoves(for: .white, on: board).count
+        let blackMobility = legalMoves(for: .black, on: board).count
+        score += (whiteMobility - blackMobility) * 5
+
         return score
+    }
+
+    // MARK: Pawn Structure Helpers
+
+    private func pawnStructurePenalty(pawnFiles: [Int], color: PieceColor) -> Int {
+        var penalty = 0
+        let fileCounts = Dictionary(grouping: pawnFiles, by: { $0 }).mapValues { $0.count }
+        for (_, count) in fileCounts where count > 1 {
+            penalty -= 20 * (count - 1)  // -20 per extra pawn on same file
+        }
+        return color == .white ? penalty : -penalty
+    }
+
+    private func isolatedPawnPenalty(pawnFiles: [Int], sign: Int) -> Int {
+        let fileSet = Set(pawnFiles)
+        var penalty = 0
+        for f in pawnFiles {
+            let hasNeighbour = fileSet.contains(f - 1) || fileSet.contains(f + 1)
+            if !hasNeighbour { penalty -= 15 }
+        }
+        return sign * penalty
+    }
+
+    private func passedPawnBonus(board: ChessBoard, color: PieceColor, sign: Int) -> Int {
+        var bonus = 0
+        let enemyColor = color.opposite
+        let direction = color == .white ? 1 : -1
+        for f in 0...7 {
+            for r in 0...7 {
+                guard let piece = board.squares[f][r],
+                      piece.type == .pawn, piece.color == color else { continue }
+                // Check if no enemy pawns block this pawn on same or adjacent files
+                var isPassed = true
+                var checkRank = r + direction
+                while (0...7).contains(checkRank) {
+                    for df in [-1, 0, 1] {
+                        let checkFile = f + df
+                        guard (0...7).contains(checkFile) else { continue }
+                        if let blocker = board.squares[checkFile][checkRank],
+                           blocker.type == .pawn, blocker.color == enemyColor {
+                            isPassed = false
+                            break
+                        }
+                    }
+                    if !isPassed { break }
+                    checkRank += direction
+                }
+                if isPassed {
+                    let advancedRank = color == .white ? r : 7 - r
+                    bonus += 20 + advancedRank * 10  // More bonus for more advanced passed pawn
+                }
+            }
+        }
+        return sign * bonus
+    }
+
+    // MARK: King Safety
+
+    private func kingSafety(board: ChessBoard, color: PieceColor, sign: Int) -> Int {
+        guard let kingSquare = board.kingSquare(for: color) else { return 0 }
+        var penalty = 0
+
+        // Pawn shield: reward pawns in front of king
+        let direction = color == .white ? 1 : -1
+        for df in [-1, 0, 1] {
+            let shieldFile = kingSquare.file + df
+            let shieldRank = kingSquare.rank + direction
+            guard (0...7).contains(shieldFile), (0...7).contains(shieldRank) else { continue }
+            let shieldSquare = Square(shieldFile, shieldRank)
+            if let piece = board[shieldSquare], piece.type == .pawn, piece.color == color {
+                penalty += 15  // Pawn shield bonus
+            }
+        }
+
+        // Open file penalty: attackers can use open files near king
+        let openFileRange = max(0, kingSquare.file - 1)...min(7, kingSquare.file + 1)
+        for f in openFileRange {
+            var hasFriendlyPawn = false
+            var hasEnemyPawn = false
+            for r in 0...7 {
+                if let piece = board.squares[f][r], piece.type == .pawn {
+                    if piece.color == color { hasFriendlyPawn = true }
+                    else { hasEnemyPawn = true }
+                }
+            }
+            if !hasFriendlyPawn { penalty -= 20 }  // Semi-open file near king
+            if !hasFriendlyPawn && !hasEnemyPawn { penalty -= 10 }  // Open file near king
+        }
+
+        return sign * penalty
     }
 
     private func pieceSquareBonus(piece: ChessPiece, file: Int, rank: Int) -> Int {
@@ -353,8 +489,55 @@ final class ChessEngineService: @unchecked Sendable {
                 [-50,-40,-30,-30,-30,-30,-40,-50]
             ]
             return table[7-r][file]
-        default:
-            return 0
+        case .bishop:
+            let table = [
+                [-20,-10,-10,-10,-10,-10,-10,-20],
+                [-10,0,0,0,0,0,0,-10],
+                [-10,0,5,10,10,5,0,-10],
+                [-10,5,5,10,10,5,5,-10],
+                [-10,0,10,10,10,10,0,-10],
+                [-10,10,10,10,10,10,10,-10],
+                [-10,5,0,0,0,0,5,-10],
+                [-20,-10,-10,-10,-10,-10,-10,-20]
+            ]
+            return table[7-r][file]
+        case .rook:
+            let table = [
+                [0,0,0,0,0,0,0,0],
+                [5,10,10,10,10,10,10,5],
+                [-5,0,0,0,0,0,0,-5],
+                [-5,0,0,0,0,0,0,-5],
+                [-5,0,0,0,0,0,0,-5],
+                [-5,0,0,0,0,0,0,-5],
+                [-5,0,0,0,0,0,0,-5],
+                [0,0,0,5,5,0,0,0]
+            ]
+            return table[7-r][file]
+        case .queen:
+            let table = [
+                [-20,-10,-10,-5,-5,-10,-10,-20],
+                [-10,0,0,0,0,0,0,-10],
+                [-10,0,5,5,5,5,0,-10],
+                [-5,0,5,5,5,5,0,-5],
+                [0,0,5,5,5,5,0,-5],
+                [-10,5,5,5,5,5,0,-10],
+                [-10,0,5,0,0,0,0,-10],
+                [-20,-10,-10,-5,-5,-10,-10,-20]
+            ]
+            return table[7-r][file]
+        case .king:
+            // Middle game king safety: stay sheltered
+            let table = [
+                [-30,-40,-40,-50,-50,-40,-40,-30],
+                [-30,-40,-40,-50,-50,-40,-40,-30],
+                [-30,-40,-40,-50,-50,-40,-40,-30],
+                [-30,-40,-40,-50,-50,-40,-40,-30],
+                [-20,-30,-30,-40,-40,-30,-30,-20],
+                [-10,-20,-20,-20,-20,-20,-20,-10],
+                [20,20,0,0,0,0,20,20],
+                [20,30,10,0,0,10,30,20]
+            ]
+            return table[7-r][file]
         }
     }
 

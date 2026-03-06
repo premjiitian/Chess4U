@@ -4,8 +4,12 @@ struct FreePlayView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var vm = ChessBoardViewModel()
     @State private var showingAnalysis = false
+    @State private var showResignAlert = false
     @State private var vsMode: VsMode = .vsAI
     @State private var aiDepth: Int = 3
+
+    private let savedGameKey = "FreePlay_SavedGame"
+    private let savedVsModeKey = "FreePlay_VsMode"
 
     enum VsMode: String, CaseIterable {
         case vsAI = "vs AI"
@@ -65,6 +69,21 @@ struct FreePlayView: View {
         .onAppear {
             vm.settings = appState.settings
             vm.profile = appState.playerProfile
+            restoreGame()
+        }
+        .onDisappear {
+            saveGame()
+        }
+        .alert("Resign Game?", isPresented: $showResignAlert) {
+            Button("Resign", role: .destructive) {
+                vm.game.status = .resigned
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    showingAnalysis = true
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to resign? This will end the current game.")
         }
         // Automatically prompt for post-game analysis when checkmate or stalemate.
         .onChange(of: vm.game.status) { status in
@@ -127,9 +146,21 @@ struct FreePlayView: View {
             } label: {
                 Image(systemName: "arrow.up.arrow.down")
             }
+            .accessibilityLabel("Flip board")
 
             Button { newGame() } label: {
                 Image(systemName: "plus.circle")
+            }
+
+            // Resign button — only shown during an active game vs AI
+            if vsMode == .vsAI && vm.game.status == .active {
+                Button {
+                    showResignAlert = true
+                } label: {
+                    Image(systemName: "flag.fill")
+                        .foregroundColor(.red)
+                }
+                .accessibilityLabel("Resign")
             }
 
             Spacer()
@@ -154,6 +185,25 @@ struct FreePlayView: View {
     func newGame() {
         vm.game = ChessGame()
         vm.lastMove = nil
+        UserDefaults.standard.removeObject(forKey: savedGameKey)
+    }
+
+    func saveGame() {
+        guard vm.game.status == .active, !vm.game.moves.isEmpty else { return }
+        if let data = try? JSONEncoder().encode(vm.game) {
+            UserDefaults.standard.set(data, forKey: savedGameKey)
+            UserDefaults.standard.set(vsMode.rawValue, forKey: savedVsModeKey)
+        }
+    }
+
+    func restoreGame() {
+        guard let data = UserDefaults.standard.data(forKey: savedGameKey),
+              let saved = try? JSONDecoder().decode(ChessGame.self, from: data) else { return }
+        vm.game = saved
+        if let modeRaw = UserDefaults.standard.string(forKey: savedVsModeKey),
+           let mode = VsMode(rawValue: modeRaw) {
+            vsMode = mode
+        }
     }
 }
 

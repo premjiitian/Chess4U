@@ -1,46 +1,64 @@
 import SwiftUI
 
+// MARK: - Chess Board View
+/// The main interactive board view. Supports both tap-to-move (iOS standard) and
+/// drag-and-drop piece movement (chess.com/lichess standard).
+/// Optionally renders a vertical evaluation bar via `showEvalBar`.
 struct ChessBoardView: View {
     @ObservedObject var vm: ChessBoardViewModel
     let interactive: Bool
+    let showEvalBar: Bool
     @State private var showPromotion: Bool = false
+    @State private var draggedPiece: ChessPiece? = nil
+    @State private var draggedFrom: Square? = nil
+    @State private var dragOffset: CGSize = .zero
+    @State private var dragLocation: CGPoint = .zero
 
-    init(vm: ChessBoardViewModel, interactive: Bool = true) {
+    init(vm: ChessBoardViewModel, interactive: Bool = true, showEvalBar: Bool = false) {
         self.vm = vm
         self.interactive = interactive
+        self.showEvalBar = showEvalBar
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            if vm.settings.showCoordinates {
-                rankLabels
+        HStack(spacing: 0) {
+            // Optional evaluation bar (left side, grandmaster / study mode)
+            if showEvalBar {
+                EvalBarView(evaluation: vm.currentEvaluation)
+                    .frame(width: 14)
+                    .padding(.trailing, 4)
             }
-            HStack(spacing: 0) {
-                if vm.settings.showCoordinates {
-                    fileLabels
+
+            VStack(spacing: 0) {
+                if vm.settings.showCoordinates { rankLabels }
+                HStack(spacing: 0) {
+                    if vm.settings.showCoordinates { fileLabels }
+                    boardGrid
                 }
-                boardGrid
             }
         }
         .overlay(promotionOverlay)
         .overlay(aiThinkingOverlay)
     }
 
+    // MARK: - Board Grid
+
     var boardGrid: some View {
         GeometryReader { geo in
             let squareSize = min(geo.size.width, geo.size.height) / 8
             ZStack(alignment: .topLeading) {
-                // Board squares
+                // Squares + pieces
                 ForEach(0..<8, id: \.self) { file in
                     ForEach(0..<8, id: \.self) { rank in
                         let displayFile = vm.isFlipped ? 7 - file : file
                         let displayRank = vm.isFlipped ? rank : 7 - rank
                         let square = Square(displayFile, displayRank)
+                        let isDragging = draggedFrom == square
 
                         ChessSquareView(
                             square: square,
                             squareSize: squareSize,
-                            piece: vm.game.board[square],
+                            piece: isDragging ? nil : vm.game.board[square],  // hide piece while dragging
                             isSelected: vm.isSelected(square),
                             isLegalMove: vm.isLegalMove(square),
                             isLastMove: vm.isLastMove(square),
@@ -50,48 +68,148 @@ struct ChessBoardView: View {
                         .position(x: CGFloat(file) * squareSize + squareSize / 2,
                                   y: CGFloat(rank) * squareSize + squareSize / 2)
                         .onTapGesture {
-                            if interactive {
-                                handleTap(square: square, vm: vm)
-                            }
+                            if interactive { handleTap(square: square) }
                         }
                     }
                 }
 
                 // Arrows overlay
                 ArrowsView(arrows: vm.arrows, squareSize: squareSize, isFlipped: vm.isFlipped)
+
+                // Floating dragged piece
+                if let piece = draggedPiece {
+                    let fontSize = squareSize * (piece.type == .pawn ? 0.64 : 0.78)
+                    ZStack {
+                        Text(piece.symbolForColor)
+                            .font(.system(size: fontSize))
+                            .foregroundColor(piece.color == .white ? Color(white: 0.05).opacity(0.7) : Color(white: 0.1).opacity(0.3))
+                            .blur(radius: squareSize * 0.04)
+                        Text(piece.symbolForColor)
+                            .font(.system(size: fontSize))
+                            .foregroundColor(piece.color == .white ? Color(white: 0.97) : Color(white: 0.06))
+                    }
+                    .scaleEffect(1.25)  // Piece lifts up when dragged
+                    .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 4)
+                    .position(dragLocation)
+                    .allowsHitTesting(false)
+                }
             }
+            // MARK: Drag Gesture
+            .gesture(
+                interactive ?
+                DragGesture(minimumDistance: 4, coordinateSpace: .local)
+                    .onChanged { value in
+                        dragLocation = value.location
+                        let sq = squareAt(location: value.startLocation, squareSize: squareSize)
+
+                        if draggedFrom == nil {
+                            // Start drag — select the piece
+                            if let piece = vm.game.board[sq], piece.color == vm.game.board.activeColor {
+                                draggedFrom = sq
+                                draggedPiece = piece
+                                vm.selectedSquare = sq
+                                vm.legalMoveSquares = ChessEngineService.shared
+                                    .legalMoves(for: piece, at: sq, on: vm.game.board)
+                                    .map { $0.to }
+                                HapticService.shared.pieceSelected()
+                            }
+                        }
+                    }
+                    .onEnded { value in
+                        let targetSq = squareAt(location: value.location, squareSize: squareSize)
+                        if let fromSq = draggedFrom, targetSq != fromSq {
+                            handleTap(square: targetSq)
+                        } else {
+                            // Cancelled drag — deselect
+                            vm.selectedSquare = nil
+                            vm.legalMoveSquares = []
+                        }
+                        draggedFrom = nil
+                        draggedPiece = nil
+                        dragOffset = .zero
+                    }
+                : nil
+            )
         }
         .aspectRatio(1, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.gray.opacity(0.3), lineWidth: 1))
     }
 
-    func handleTap(square: Square, vm: ChessBoardViewModel) {
-        // Check if a move is being made to the tapped square
+    // MARK: - Input Handling
+
+    func handleTap(square: Square) {
+        let board = vm.game.board
+
+        // Promotion path
         if let selected = vm.selectedSquare, vm.isLegalMove(square) {
-            let board = vm.game.board
             if let piece = board[selected], piece.type == .pawn {
                 let promotionRank = piece.color == .white ? 7 : 0
                 if square.rank == promotionRank {
                     vm.selectedSquare = selected
                     vm.promotionPending = square
                     showPromotion = true
+                    HapticService.shared.pieceMoved()
                     return
                 }
             }
         }
+
+        let prevMoveCount = vm.game.moves.count
         vm.selectSquare(square)
+        let nowMoveCount = vm.game.moves.count
 
-        // After selection, check if move should be executed
-        if let selected = vm.selectedSquare,
-           let prevSelected = vm.selectedSquare,
-           selected == prevSelected { }
-
-        // If move was made, check if AI should respond
-        if vm.game.board.activeColor == .black && interactive {
-            // AI plays after player move
+        if nowMoveCount > prevMoveCount, let lastMove = vm.game.moves.last {
+            // A move was made — fire feedback
+            fireMoveFeedback(move: lastMove)
+        } else if vm.selectedSquare == square {
+            // Piece selected
+            HapticService.shared.pieceSelected()
         }
     }
+
+    private func fireMoveFeedback(move: ChessMove) {
+        if move.isCastling {
+            HapticService.shared.castling()
+            SoundService.shared.playCastling()
+        } else if move.isCapture {
+            HapticService.shared.pieceCapture()
+            SoundService.shared.playCapture()
+        } else {
+            HapticService.shared.pieceMoved()
+            SoundService.shared.playMove()
+        }
+
+        // Check / checkmate feedback
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            switch vm.game.status {
+            case .check:
+                HapticService.shared.check()
+                SoundService.shared.playCheck()
+            case .checkmate:
+                HapticService.shared.checkmate()
+                SoundService.shared.playGameWon()
+            default: break
+            }
+        }
+
+        if move.promotionPiece != nil {
+            HapticService.shared.promotion()
+            SoundService.shared.playPromotion()
+        }
+    }
+
+    // MARK: - Coordinate Conversion
+
+    private func squareAt(location: CGPoint, squareSize: CGFloat) -> Square {
+        let file = Int(location.x / squareSize).clamped(to: 0...7)
+        let rank = Int(location.y / squareSize).clamped(to: 0...7)
+        let displayFile = vm.isFlipped ? 7 - file : file
+        let displayRank = vm.isFlipped ? rank : 7 - rank
+        return Square(displayFile, displayRank)
+    }
+
+    // MARK: - Labels
 
     var rankLabels: some View {
         HStack(spacing: 0) {
@@ -120,6 +238,8 @@ struct ChessBoardView: View {
         .frame(width: 16)
     }
 
+    // MARK: - Overlays
+
     var promotionOverlay: some View {
         Group {
             if vm.promotionPending != nil {
@@ -128,6 +248,8 @@ struct ChessBoardView: View {
                     onSelect: { piece in
                         vm.handlePromotion(piece: piece)
                         showPromotion = false
+                        HapticService.shared.promotion()
+                        SoundService.shared.playPromotion()
                     }
                 )
             }
@@ -154,6 +276,45 @@ struct ChessBoardView: View {
     }
 }
 
+// MARK: - Evaluation Bar View
+/// Vertical bar showing the engine evaluation: white (top) vs black (bottom).
+/// Clamped to ±5 pawns for display purposes.
+struct EvalBarView: View {
+    let evaluation: Double  // positive = white advantage, negative = black
+
+    private var whiteRatio: CGFloat {
+        let clamped = max(-5.0, min(5.0, evaluation))
+        return CGFloat((clamped + 5.0) / 10.0)
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .bottom) {
+                // Black side (full bar)
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(white: 0.12))
+
+                // White side (grows from bottom)
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(white: 0.95))
+                    .frame(height: geo.size.height * whiteRatio)
+
+                // Advantage label
+                let absEval = abs(evaluation)
+                if absEval > 0.3 {
+                    Text(absEval >= 10 ? "M" : String(format: "%.1f", absEval))
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundColor(evaluation > 0 ? Color(white: 0.1) : .white)
+                        .padding(.bottom, evaluation > 0 ? 3 : nil)
+                        .padding(.top, evaluation <= 0 ? 3 : nil)
+                        .frame(maxHeight: .infinity,
+                               alignment: evaluation > 0 ? .bottom : .top)
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Chess Square View
 struct ChessSquareView: View {
     let square: Square
@@ -167,12 +328,10 @@ struct ChessSquareView: View {
 
     var body: some View {
         ZStack {
-            // Square background
             Rectangle()
                 .fill(backgroundColor)
                 .frame(width: squareSize, height: squareSize)
 
-            // Legal move indicator
             if isLegalMove {
                 if piece != nil {
                     Circle()
@@ -185,18 +344,14 @@ struct ChessSquareView: View {
                 }
             }
 
-            // Piece — rendered with high-contrast outline so white pieces are
-            // always visible on light squares and black pieces on dark squares.
+            // Piece — ZStack with blurred dark silhouette for white piece visibility
             if let piece = piece {
                 let fontSize = squareSize * (piece.type == .pawn ? 0.64 : 0.78)
                 ZStack {
-                    // Blurred dark silhouette creates a natural outline/border
-                    // that makes white pieces pop against any square color.
                     Text(piece.symbolForColor)
                         .font(.system(size: fontSize))
                         .foregroundColor(Color(white: 0.05).opacity(piece.color == .white ? 0.75 : 0.35))
                         .blur(radius: squareSize * 0.04)
-                    // Primary glyph layer with explicit piece-color foreground
                     Text(piece.symbolForColor)
                         .font(.system(size: fontSize))
                         .minimumScaleFactor(0.5)
@@ -240,14 +395,12 @@ struct ArrowsView: View {
     }
 
     private func drawArrow(context: GraphicsContext, from: CGPoint, to: CGPoint) {
-        let dx = to.x - from.x
-        let dy = to.y - from.y
+        let dx = to.x - from.x, dy = to.y - from.y
         let length = sqrt(dx * dx + dy * dy)
         guard length > 0 else { return }
-
         let angle = atan2(dy, dx)
         let arrowLength = squareSize * 0.35
-        let arrowWidth = squareSize * 0.15
+        let arrowWidth  = squareSize * 0.15
 
         var path = Path()
         path.move(to: from)
@@ -298,5 +451,12 @@ struct PromotionView: View {
             .padding()
         }
         .cornerRadius(16)
+    }
+}
+
+// MARK: - Int Clamping Helper
+extension Comparable {
+    func clamped(to limits: ClosedRange<Self>) -> Self {
+        min(max(self, limits.lowerBound), limits.upperBound)
     }
 }

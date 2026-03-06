@@ -3,7 +3,8 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var vm = DashboardViewModel()
-    @State private var showingTrainingSession: Bool = false
+    @ObservedObject private var puzzleService = DailyPuzzleService.shared
+    @State private var showingDailyPuzzle = false
 
     var body: some View {
         NavigationView {
@@ -11,6 +12,14 @@ struct DashboardView: View {
                 VStack(spacing: 20) {
                     // Greeting & Streak
                     greetingSection
+
+                    // Daily Puzzle Card
+                    dailyPuzzleCard
+
+                    // Skill Progress Rings
+                    if let profile = appState.playerProfile {
+                        skillProgressRings(profile: profile)
+                    }
 
                     // Skill Radar
                     if let profile = appState.playerProfile {
@@ -53,6 +62,10 @@ struct DashboardView: View {
             if let profile = appState.playerProfile {
                 vm.load(profile: profile, achievements: appState.achievements, streak: appState.trainingStreak)
             }
+        }
+        .sheet(isPresented: $showingDailyPuzzle) {
+            DailyPuzzleView()
+                .environmentObject(appState)
         }
     }
 
@@ -98,6 +111,92 @@ struct DashboardView: View {
         case 17..<22: return "Good evening, \(name)!"
         default: return "Hello, \(name)!"
         }
+    }
+
+    var dailyPuzzleCard: some View {
+        Button { showingDailyPuzzle = true } label: {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(puzzleService.isCompleted ? Color.green : Color.orange)
+                        .frame(width: 56, height: 56)
+                    Image(systemName: puzzleService.isCompleted ? "checkmark" : "puzzlepiece.fill")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Daily Puzzle")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        if puzzleService.isCompleted {
+                            Text("Solved!")
+                                .font(.caption)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.green)
+                                .cornerRadius(6)
+                        }
+                    }
+                    if let puzzle = puzzleService.todaysPuzzle {
+                        Text(puzzle.theme.rawValue.capitalized + " · Rating \(puzzle.rating)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    HStack(spacing: 4) {
+                        Image(systemName: "flame.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                        Text("Streak: \(puzzleService.streak) days")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(
+                LinearGradient(
+                    colors: puzzleService.isCompleted
+                        ? [Color.green.opacity(0.08), Color.green.opacity(0.04)]
+                        : [Color.orange.opacity(0.12), Color.yellow.opacity(0.06)],
+                    startPoint: .leading, endPoint: .trailing
+                )
+            )
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(puzzleService.isCompleted ? Color.green.opacity(0.3) : Color.orange.opacity(0.3), lineWidth: 1)
+            )
+        }
+    }
+
+    func skillProgressRings(profile: PlayerProfile) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.bar.fill")
+                    .foregroundColor(.blue)
+                Text("Skill Progress")
+                    .font(.headline)
+                Spacer()
+            }
+
+            HStack(spacing: 20) {
+                SkillRingView(label: "Tactics", value: profile.tacticsAccuracy, color: .red)
+                SkillRingView(label: "Strategy", value: profile.strategyScore, color: .blue)
+                SkillRingView(label: "Endgame", value: profile.endgameAccuracy, color: .green)
+                SkillRingView(label: "Openings", value: profile.openingAccuracy, color: .orange)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
     }
 
     var recommendedTrainingCard: some View {
@@ -240,6 +339,35 @@ struct DayPlanCard: View {
         .background(plan.isCompleted ? Color.green.opacity(0.1) : Color(.systemGroupedBackground))
         .cornerRadius(10)
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.2)))
+    }
+}
+
+// MARK: - Skill Ring View
+struct SkillRingView: View {
+    let label: String
+    let value: Double   // 0.0 ... 1.0
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .stroke(color.opacity(0.2), lineWidth: 6)
+                Circle()
+                    .trim(from: 0, to: CGFloat(min(value, 1.0)))
+                    .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeOut(duration: 0.8), value: value)
+                Text("\(Int(value * 100))%")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(color)
+            }
+            .frame(width: 56, height: 56)
+
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
     }
 }
 

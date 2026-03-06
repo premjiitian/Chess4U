@@ -9,7 +9,7 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
     @Published var currentAdvice: String = ""
     @Published var isThinking: Bool = false
 
-    // MARK: - Generate Position Commentary
+    // MARK: - Generate Position Commentary (Silman's Imbalances Methodology)
     func generateCommentary(for board: ChessBoard, profile: PlayerProfile) -> String {
         let engine = ChessEngineService.shared
         let eval = engine.evaluate(board: board)
@@ -28,39 +28,89 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
             return "⚠️ You are in check! You must move out of check. Look for: block, capture the checking piece, or move the king."
         }
 
-        let material = describeMaterial(eval: eval, isWhiteTurn: isWhiteTurn)
-        let suggestion = generateSuggestion(board: board, profile: profile, legalMoves: legalMoves)
+        let imbalances = analyzeImbalances(board: board, isWhiteTurn: isWhiteTurn, eval: eval)
+        let plan = generatePlan(imbalances: imbalances, board: board, profile: profile, legalMoves: legalMoves)
 
-        return "\(material)\n\n\(suggestion)"
-    }
-
-    private func describeMaterial(eval: Int, isWhiteTurn: Bool) -> String {
-        let advantage = isWhiteTurn ? eval : -eval
-        if abs(advantage) < 50 { return "The position is roughly equal." }
-        if advantage > 0 {
-            let pawns = Double(advantage) / 100.0
-            return "You have a \(String(format: "%.1f", pawns)) pawn advantage. Press your advantage!"
-        } else {
-            let pawns = Double(-advantage) / 100.0
-            return "You are \(String(format: "%.1f", pawns)) pawns down. Look for counterplay!"
+        if let topImbalance = imbalances.first {
+            return "\(topImbalance)\n\n\(plan)"
         }
+        return plan
     }
 
-    private func generateSuggestion(board: ChessBoard, profile: PlayerProfile, legalMoves: [ChessMove]) -> String {
+    // MARK: - Silman's Seven Imbalances Analysis
+    private func analyzeImbalances(board: ChessBoard, isWhiteTurn: Bool, eval: Int) -> [String] {
+        var imbalances: [String] = []
+        let advantage = isWhiteTurn ? eval : -eval
+
+        // 1. Material Imbalance
+        if abs(advantage) >= 50 {
+            if advantage > 0 {
+                let pawns = String(format: "%.1f", Double(advantage) / 100.0)
+                imbalances.append("⚖️ Material: You are up \(pawns) pawns. Convert this advantage with accurate play.")
+            } else {
+                let pawns = String(format: "%.1f", Double(-advantage) / 100.0)
+                imbalances.append("⚖️ Material: You are down \(pawns) pawns. Seek counterplay and complications.")
+            }
+        }
+
+        // 2. Pawn Structure
+        let myPawns = board.squares.compactMap { $0 }.filter { $0.type == .pawn && $0.color == (isWhiteTurn ? .white : .black) }
+        let myPawnFiles = myPawns.map { $0.square.file }
+        let doubledFiles = Dictionary(grouping: myPawnFiles, by: { $0 }).filter { $0.value.count > 1 }
+        if !doubledFiles.isEmpty {
+            imbalances.append("♟️ Pawn Structure: You have doubled pawns — a long-term weakness. Try to eliminate or trade them.")
+        }
+
+        // 3. Space
+        let myPieceSquares = board.squares.compactMap { $0 }.filter { $0.color == (isWhiteTurn ? .white : .black) && $0.type != .king }
+        let centerControl = myPieceSquares.filter { (3...4).contains($0.square.file) && (3...4).contains($0.square.rank) }.count
+        if centerControl >= 2 {
+            imbalances.append("🏰 Space: You control the center. Use this space advantage to launch an attack.")
+        } else if centerControl == 0 {
+            imbalances.append("🏰 Space: Your opponent controls more center space. Fight back with pawn breaks.")
+        }
+
+        // 4. Minor Piece Quality (Bishop vs Knight)
+        let myBishops = myPieceSquares.filter { $0.type == .bishop }.count
+        let myKnights = myPieceSquares.filter { $0.type == .knight }.count
+        let oppPieces = board.squares.compactMap { $0 }.filter { $0.color == (isWhiteTurn ? .black : .white) && $0.type != .king }
+        let oppBishops = oppPieces.filter { $0.type == .bishop }.count
+        if myBishops == 2 && oppBishops < 2 {
+            imbalances.append("🔷 Minor Pieces: You have the bishop pair — powerful in open positions. Open the position!")
+        } else if myKnights >= 2 && myBishops == 0 {
+            imbalances.append("🐴 Minor Pieces: Knights excel in closed positions. Keep the pawn structure blocked.")
+        }
+
+        // 5. Open Files & Key Squares
+        let myRooks = myPieceSquares.filter { $0.type == .rook }
+        for rook in myRooks {
+            let file = rook.square.file
+            let pawnsOnFile = board.squares.compactMap { $0 }.filter { $0.type == .pawn && $0.square.file == file }
+            if pawnsOnFile.isEmpty {
+                imbalances.append("🏹 Open Files: Your rook is on an open file. Double rooks or invade the 7th rank!")
+                break
+            }
+        }
+
+        return imbalances
+    }
+
+    private func generatePlan(imbalances: [String], board: ChessBoard, profile: PlayerProfile, legalMoves: [ChessMove]) -> String {
         let blunderCheck = TreeOfThoughtEngine.shared.blunderCheckQuestions(for: board)
         let questions = blunderCheck.prefix(2).joined(separator: " ")
 
         switch profile.band {
         case .bandA:
-            return "💡 Before moving, ask yourself: \(questions)\nLook for the most active move."
+            return "💡 Ask yourself: \(questions)\nFocus on: develop all pieces, castle for king safety, control the center."
         case .bandB:
-            return "💡 Consider: \(questions)\nThink about which pieces need improvement."
+            return "💡 Think: \(questions)\nIdentify your worst-placed piece and improve it. Look for forks and pins."
         case .bandC:
-            return "💡 Calculate: \(questions)\nFind the best pawn break or tactical opportunity."
+            let imbalanceHint = imbalances.isEmpty ? "Find a pawn break or tactical opportunity." : "Act on your key imbalance."
+            return "💡 Calculate: \(questions)\n\(imbalanceHint) Calculate at least 3 moves deep."
         case .bandD:
-            return "💡 Prophylaxis: \(questions)\nConsider your opponent's plans before executing yours."
+            return "💡 Prophylaxis first: \(questions)\nWhat is your opponent threatening? Stop their plan, then execute yours."
         case .bandE:
-            return "💡 Deep calculation required. \(questions)\nLook for imbalances and long-term advantages."
+            return "💡 Silman's method: identify ALL imbalances, then make a plan that exploits the most important one.\n\(questions)"
         }
     }
 

@@ -218,4 +218,9 @@ class ChessBoardViewModel: ObservableObject {
         guard let last = lastMove else { return false }
         return last.from == square || last.to == square
     }
+
+    /// Current position evaluation in pawns from White's perspective (+= white advantage).
+    var currentEvaluation: Double {
+        Double(engine.evaluate(board: game.board)) / 100.0
+    }
 }
