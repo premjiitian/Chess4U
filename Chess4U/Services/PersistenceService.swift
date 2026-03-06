@@ -1,9 +1,12 @@
 import Foundation
+import WidgetKit
 
 // MARK: - Persistence Service
 final class PersistenceService {
     static let shared = PersistenceService()
     private let defaults = UserDefaults.standard
+    /// Shared suite for WidgetKit — must match the App Group entitlement.
+    private let sharedDefaults = UserDefaults(suiteName: "group.com.chess4u.app") ?? .standard
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
@@ -23,6 +26,9 @@ final class PersistenceService {
         if let data = try? encoder.encode(profile) {
             defaults.set(data, forKey: Keys.playerProfile)
         }
+        // Mirror lightweight fields to shared suite for the widget
+        sharedDefaults.set(profile.name, forKey: "chess4u.playerName")
+        sharedDefaults.set(profile.elo,  forKey: "chess4u.elo")
     }
 
     func loadPlayerProfile() -> PlayerProfile? {
@@ -64,6 +70,10 @@ final class PersistenceService {
     func saveStreak(_ streak: Int) {
         defaults.set(streak, forKey: Keys.streak)
         defaults.set(Date(), forKey: Keys.lastSessionDate)
+        // Mirror to shared suite so the widget shows the latest streak
+        sharedDefaults.set(streak, forKey: "chess4u.streak")
+        sharedDefaults.set(Date(), forKey: "chess4u.lastSessionDate")
+        WidgetCenter.shared.reloadTimelines(ofKind: "Chess4UStreakWidget")
     }
 
     func loadStreak() -> Int {
@@ -84,6 +94,16 @@ final class PersistenceService {
         if let data = try? encoder.encode(recent) {
             defaults.set(data, forKey: Keys.sessionHistory)
         }
+        // Count today's sessions for the widget progress bar
+        let todayCount = recent.filter {
+            guard let end = $0.endDate else { return false }
+            return Calendar.current.isDateInToday(end)
+        }.count
+        sharedDefaults.set(todayCount, forKey: "chess4u.todaySessionsDone")
+    }
+
+    func saveWidgetGoal(_ goal: Int) {
+        sharedDefaults.set(goal, forKey: "chess4u.todaySessionsGoal")
     }
 
     func loadSessionHistory() -> [TrainingSession] {

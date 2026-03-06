@@ -63,7 +63,9 @@ struct ChessBoardView: View {
                             isLegalMove: vm.isLegalMove(square),
                             isLastMove: vm.isLastMove(square),
                             highlightColor: vm.highlightedSquares[square],
-                            lightColor: vm.squareColor(file: displayFile, rank: displayRank)
+                            lightColor: vm.squareColor(file: displayFile, rank: displayRank),
+                            isActiveColor: vm.game.board[square]?.color == vm.game.board.activeColor,
+                            isInteractive: interactive
                         )
                         .position(x: CGFloat(file) * squareSize + squareSize / 2,
                                   y: CGFloat(rank) * squareSize + squareSize / 2)
@@ -325,6 +327,8 @@ struct ChessSquareView: View {
     let isLastMove: Bool
     let highlightColor: Color?
     let lightColor: Color
+    var isActiveColor: Bool = false
+    var isInteractive: Bool = true
 
     var body: some View {
         ZStack {
@@ -361,6 +365,35 @@ struct ChessSquareView: View {
                 }
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(squareAccessibilityLabel)
+        .accessibilityHint(squareAccessibilityHint)
+        .accessibilityAddTraits(.isButton)
+    }
+
+    // MARK: - Accessibility
+
+    private var squareAccessibilityLabel: String {
+        if isLegalMove && piece == nil {
+            return "Legal move: \(square.algebraic)"
+        }
+        if let piece = piece {
+            let colorName = piece.color == .white ? "White" : "Black"
+            var label = "\(colorName) \(piece.type.rawValue) on \(square.algebraic)"
+            if isSelected { label += ", selected" }
+            if isLegalMove { label += ", can capture here" }
+            if isLastMove  { label += ", last move" }
+            return label
+        }
+        return isLastMove ? "Last move to \(square.algebraic)" : "\(square.algebraic)"
+    }
+
+    private var squareAccessibilityHint: String {
+        if isLegalMove { return "Double tap to move here" }
+        if piece != nil && isActiveColor && isInteractive {
+            return isSelected ? "Double tap to deselect" : "Double tap to select"
+        }
+        return ""
     }
 
     var backgroundColor: Color {

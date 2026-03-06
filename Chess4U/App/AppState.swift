@@ -79,8 +79,14 @@ class AppState: ObservableObject {
 
     func savePlayerProfile(_ profile: PlayerProfile) {
         playerProfile = profile
-        weeklyPlan = WeeklyTrainingPlan.generate(for: profile)
+        let plan = WeeklyTrainingPlan.generate(for: profile)
+        weeklyPlan = plan
         persistence.savePlayerProfile(profile)
+        // Derive today's session goal from the plan (number of training types for today)
+        let todayIndex = (Calendar.current.component(.weekday, from: Date()) + 5) % 7  // Mon=0
+        let goal = plan.dailyPlans.indices.contains(todayIndex)
+            ? plan.dailyPlans[todayIndex].trainingTypes.count : 3
+        persistence.saveWidgetGoal(max(1, goal))
         checkAndAwardAchievements()
     }
 
