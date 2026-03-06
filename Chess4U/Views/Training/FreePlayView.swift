@@ -3,10 +3,13 @@ import SwiftUI
 struct FreePlayView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var vm = ChessBoardViewModel()
+    @StateObject private var clock = ChessClockService()
     @State private var showingAnalysis = false
     @State private var showResignAlert = false
+    @State private var showClockPicker = false
     @State private var vsMode: VsMode = .vsAI
     @State private var aiDepth: Int = 3
+    @State private var clockPreset: ClockPreset = .none
 
     private let savedGameKey = "FreePlay_SavedGame"
     private let savedVsModeKey = "FreePlay_VsMode"
@@ -23,6 +26,13 @@ struct FreePlayView: View {
                 // Game status bar
                 statusBar
 
+                // Black clock (top, shown only when clock is active)
+                if clockPreset != .none {
+                    ClockFaceView(clock: clock, color: vm.isFlipped ? .white : .black)
+                        .padding(.horizontal)
+                        .padding(.top, 4)
+                }
+
                 // Chess board — always a single view; interactive flag computed
                 // so the view identity is stable across turn changes, which
                 // prevents SwiftUI from unmounting/remounting on each AI move.
@@ -32,9 +42,18 @@ struct FreePlayView: View {
                 )
                 .padding()
                 .onChange(of: vm.game.moves.count) { _ in
+                    // Press clock on each move
+                    if clockPreset != .none { clock.pressClock() }
                     if vsMode == .vsAI && vm.game.board.activeColor == .black {
                         vm.makeAIMove(depth: aiDepth)
                     }
+                }
+
+                // White clock (bottom)
+                if clockPreset != .none {
+                    ClockFaceView(clock: clock, color: vm.isFlipped ? .black : .white)
+                        .padding(.horizontal)
+                        .padding(.bottom, 4)
                 }
 
                 // Move list
@@ -48,6 +67,14 @@ struct FreePlayView: View {
             .navigationTitle("Free Play")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showClockPicker = true
+                    } label: {
+                        Label(clockPreset == .none ? "Clock" : clockPreset.rawValue,
+                              systemImage: "clock")
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         ForEach(VsMode.allCases, id: \.self) { mode in
@@ -60,6 +87,16 @@ struct FreePlayView: View {
                         Label(vsMode.rawValue, systemImage: "ellipsis.circle")
                     }
                 }
+            }
+            .confirmationDialog("Choose Time Control", isPresented: $showClockPicker, titleVisibility: .visible) {
+                ForEach(ClockPreset.allCases, id: \.self) { preset in
+                    Button(preset.rawValue) {
+                        clockPreset = preset
+                        clock.configure(preset: preset)
+                        if preset != .none { clock.start() }
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
             }
             .sheet(isPresented: $showingAnalysis) {
                 GameAnalysisSheet(game: vm.game)
@@ -76,7 +113,7 @@ struct FreePlayView: View {
         }
         .alert("Resign Game?", isPresented: $showResignAlert) {
             Button("Resign", role: .destructive) {
-                vm.game.status = .resigned
+                vm.game.status = .resigned(vm.game.board.activeColor)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     showingAnalysis = true
                 }
@@ -87,15 +124,28 @@ struct FreePlayView: View {
         }
         // Automatically prompt for post-game analysis when checkmate or stalemate.
         .onChange(of: vm.game.status) { status in
-            // Offer post-game analysis whenever the game ends
             switch status {
-            case .checkmate, .stalemate, .draw, .resigned:
+            case .checkmate, .stalemate, .draw, .resigned(_):
+                clock.pause()
+                appState.recordGameCompleted()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     showingAnalysis = true
                 }
             default: break
             }
         }
+        // Clock flag = flagged player loses on time
+        .onChange(of: clock.isFlagged) { flagged in
+            guard flagged else { return }
+            vm.game.status = .resigned(vm.game.board.activeColor)  // treat flag as resign for analysis
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                showingAnalysis = true
+            }
+        }
+    }
+
+    var openingName: String? {
+        ChessOpening.detect(moves: vm.game.moves.map { $0.longAlgebraic })
     }
 
     var statusBar: some View {
@@ -105,9 +155,17 @@ struct FreePlayView: View {
                 .frame(width: 14, height: 14)
                 .overlay(Circle().stroke(Color.gray, lineWidth: 1))
 
-            Text(vm.statusMessage)
-                .font(.subheadline)
-                .foregroundColor(.primary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(vm.statusMessage)
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+                if let opening = openingName {
+                    Text(opening)
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                        .lineLimit(1)
+                }
+            }
 
             Spacer()
 
@@ -165,6 +223,14 @@ struct FreePlayView: View {
 
             Spacer()
 
+            // Share PGN
+            if !vm.game.moves.isEmpty {
+                ShareLink(item: vm.game.pgn, preview: SharePreview("Chess Game PGN")) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .accessibilityLabel("Share game")
+            }
+
             Button {
                 showingAnalysis = true
             } label: {
@@ -186,6 +252,8 @@ struct FreePlayView: View {
         vm.game = ChessGame()
         vm.lastMove = nil
         UserDefaults.standard.removeObject(forKey: savedGameKey)
+        clock.reset()
+        if clockPreset != .none { clock.start() }
     }
 
     func saveGame() {
@@ -203,6 +271,36 @@ struct FreePlayView: View {
         if let modeRaw = UserDefaults.standard.string(forKey: savedVsModeKey),
            let mode = VsMode(rawValue: modeRaw) {
             vsMode = mode
+        }
+    }
+}
+
+// MARK: - Clock Face View
+struct ClockFaceView: View {
+    @ObservedObject var clock: ChessClockService
+    let color: PieceColor
+
+    private var isActive: Bool { clock.isRunning && clock.activeColor == color }
+    private var isLow: Bool { clock.isLowTime(for: color) }
+
+    var body: some View {
+        HStack {
+            if color == .black { Spacer() }
+            Text(clock.displayTime(for: color))
+                .font(.system(size: 28, weight: .bold, design: .monospaced))
+                .foregroundColor(isLow ? .white : (color == .white ? .primary : .white))
+                .padding(.horizontal, 20)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isLow ? Color.red : (isActive ? Color.green.opacity(0.85) : Color(.systemFill)))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isActive ? Color.green : Color.clear, lineWidth: 2)
+                )
+                .animation(.easeInOut(duration: 0.3), value: isActive)
+            if color == .white { Spacer() }
         }
     }
 }

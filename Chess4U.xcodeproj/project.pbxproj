@@ -47,10 +47,12 @@
 		23A67C5269B8413D99AC63E0 		A1B2C3D4E5F60001AAAA1001 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
 				A1B2C3D4E5F60001AAAA1002 /* SoundService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundService.swift; sourceTree = "<group>"; };
 				A1B2C3D4E5F60001AAAA1003 /* DailyPuzzleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyPuzzleService.swift; sourceTree = "<group>"; };
+				A1B2C3D4E5F60001AAAA1005 /* ChessClockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessClockService.swift; sourceTree = "<group>"; };
 		/* ExternalPlatformService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalPlatformService.swift; sourceTree = "<group>"; };
 		DD8690D2D36E40E7A963FAF9 		A1B2C3D4E5F60001BBBB1001 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1001 /* HapticService.swift */; };
 				A1B2C3D4E5F60001BBBB1002 /* SoundService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1002 /* SoundService.swift */; };
 				A1B2C3D4E5F60001BBBB1003 /* DailyPuzzleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1003 /* DailyPuzzleService.swift */; };
+				A1B2C3D4E5F60001BBBB1005 /* ChessClockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1005 /* ChessClockService.swift */; };
 		/* ExternalPlatformService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A67C5269B8413D99AC63E0 /* ExternalPlatformService.swift */; };
 		55ED4B38652B4789919B43C1 		A1B2C3D4E5F60001BBBB1004 /* DailyPuzzleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1004 /* DailyPuzzleView.swift */; };
 		/* ImportGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F91746F4F654991BB200034 /* ImportGamesView.swift */; };
@@ -358,6 +360,7 @@
 			children = (
 				D41043741DB003D36751F9C9 /* ChessEngineService.swift */,
 				23A67C5269B8413D99AC63E0 /* ExternalPlatformService.swift */,
+				A1B2C3D4E5F60001AAAA1005 /* ChessClockService.swift */,
 				A1B2C3D4E5F60001AAAA1003 /* DailyPuzzleService.swift */,
 				A1B2C3D4E5F60001AAAA1002 /* SoundService.swift */,
 				A1B2C3D4E5F60001AAAA1001 /* HapticService.swift */,
@@ -546,6 +549,7 @@
 				2AF4C1199109185F6D471547 /* SettingsView.swift in Sources */,
 				4AEBC3F22E71F56EDDEEE9CB /* ChessEngineService.swift in Sources */,
 				DD8690D2D36E40E7A963FAF9 /* ExternalPlatformService.swift in Sources */,
+				A1B2C3D4E5F60001BBBB1005 /* ChessClockService.swift in Sources */,
 				A1B2C3D4E5F60001BBBB1003 /* DailyPuzzleService.swift in Sources */,
 				A1B2C3D4E5F60001BBBB1002 /* SoundService.swift in Sources */,
 				A1B2C3D4E5F60001BBBB1001 /* HapticService.swift in Sources */,

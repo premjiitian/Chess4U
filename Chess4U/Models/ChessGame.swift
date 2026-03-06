@@ -149,4 +149,31 @@ class ChessGame: ObservableObject, Codable, @unchecked Sendable {
         [Result "\(result.rawValue)"]
         """
     }
+
+    /// Full PGN string including header and move list.
+    var pgn: String {
+        var lines = [pgnHeader, ""]
+        var moveText = ""
+        for (idx, move) in moves.enumerated() {
+            if idx % 2 == 0 {
+                moveText += "\(idx / 2 + 1). "
+            }
+            let notation = move.notation.isEmpty ? move.longAlgebraic : move.notation
+            moveText += notation + " "
+        }
+        moveText += result.rawValue
+        // Wrap at ~80 chars for readability
+        var line = ""
+        for token in moveText.split(separator: " ") {
+            let word = String(token)
+            if line.count + word.count + 1 > 80 {
+                lines.append(line)
+                line = word
+            } else {
+                line += (line.isEmpty ? "" : " ") + word
+            }
+        }
+        if !line.isEmpty { lines.append(line) }
+        return lines.joined(separator: "\n")
+    }
 }

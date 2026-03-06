@@ -254,4 +254,25 @@ struct ChessOpening: Codable, Identifiable {
             difficulty: .hard
         )
     ]
+
+    // MARK: - Opening Detection
+    /// Returns the most specific variation name matching the game's move list (long-algebraic notation).
+    static func detect(moves: [String]) -> String? {
+        guard !moves.isEmpty else { return nil }
+        var bestMatch: String? = nil
+        var bestLength = 0
+
+        for opening in openingLibrary {
+            for variation in opening.variations {
+                let varMoves = variation.moves
+                let checkLen = min(varMoves.count, moves.count)
+                guard checkLen > 0 else { continue }
+                if checkLen > bestLength && Array(moves.prefix(checkLen)) == Array(varMoves.prefix(checkLen)) {
+                    bestLength = checkLen
+                    bestMatch = variation.name
+                }
+            }
+        }
+        return bestMatch
+    }
 }

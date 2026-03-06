@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import StoreKit
 
 class AppState: ObservableObject {
     @Published var playerProfile: PlayerProfile?
@@ -95,8 +96,33 @@ class AppState: ObservableObject {
             profile.totalPuzzlesSolved += session.puzzlesSolved
             profile.lastSessionDate = Date()
             savePlayerProfile(profile)
+            // Prompt for App Store review after 5, 20, and 50 sessions
+            let milestones = [5, 20, 50]
+            if milestones.contains(profile.sessionsCompleted) {
+                requestAppStoreReview()
+            }
         }
         checkAndAwardAchievements()
+    }
+
+    func recordGameCompleted() {
+        // Called after each free-play game finishes
+        let key = "Chess4U_GamesPlayed"
+        let count = UserDefaults.standard.integer(forKey: key) + 1
+        UserDefaults.standard.set(count, forKey: key)
+        let milestones = [5, 25, 100]
+        if milestones.contains(count) {
+            requestAppStoreReview()
+        }
+    }
+
+    private func requestAppStoreReview() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            if let scene = UIApplication.shared.connectedScenes
+                .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+                SKStoreReviewController.requestReview(in: scene)
+            }
+        }
     }
 
     private func checkAndAwardAchievements() {
