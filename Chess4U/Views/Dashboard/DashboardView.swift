@@ -192,10 +192,10 @@ struct DashboardView: View {
             }
 
             HStack(spacing: 20) {
-                SkillRingView(label: "Tactics", value: profile.tacticsAccuracy, color: .red)
-                SkillRingView(label: "Strategy", value: profile.strategyScore, color: .blue)
-                SkillRingView(label: "Endgame", value: profile.endgameAccuracy, color: .green)
-                SkillRingView(label: "Openings", value: profile.openingAccuracy, color: .orange)
+                SkillRingView(label: "Tactics", value: profile.tacticsAccuracy / 100, color: .red)
+                SkillRingView(label: "Strategy", value: profile.strategyScore / 100, color: .blue)
+                SkillRingView(label: "Endgame", value: profile.endgameAccuracy / 100, color: .green)
+                SkillRingView(label: "Openings", value: profile.openingAccuracy / 100, color: .orange)
             }
             .frame(maxWidth: .infinity)
         }
