@@ -29,6 +29,7 @@ struct MainTabView: View {
     }
 
     var body: some View {
+        ZStack(alignment: .top) {
         TabView(selection: $selectedTab) {
             DashboardView()
                 .tabItem { Label(isKidsMode ? "Home" : "Dashboard", systemImage: isKidsMode ? "house.fill" : "house.fill") }
@@ -61,5 +62,58 @@ struct MainTabView: View {
                 .accessibilityIdentifier("tab_profile")
         }
         .accentColor(isKidsMode ? .orange : AppTheme.accent)
+
+        // Achievement toast banner
+        if let achievement = appState.pendingAchievement {
+            AchievementToastView(achievement: achievement)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.7), value: appState.pendingAchievement?.id)
+                .zIndex(100)
+                .padding(.top, 8)
+        }
+        } // end ZStack
+    }
+}
+
+// MARK: - Achievement Toast
+struct AchievementToastView: View {
+    let achievement: Achievement
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: achievement.icon)
+                .font(.title2)
+                .foregroundColor(.yellow)
+                .frame(width: 44, height: 44)
+                .background(Color.yellow.opacity(0.2))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Achievement Unlocked!")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text(achievement.title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                Text(achievement.description)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Image(systemName: "trophy.fill")
+                .foregroundColor(.yellow)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
+        )
+        .padding(.horizontal, 16)
     }
 }

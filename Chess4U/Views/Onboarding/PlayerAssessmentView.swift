@@ -14,8 +14,9 @@ struct PlayerAssessmentView: View {
     @State private var mainDefensesBlack: String = ""
     @State private var currentStep: Int = 0
     @State private var showingCompletion: Bool = false
+    @State private var isKidsProfile: Bool = false  // Kids mode toggle
 
-    private let steps = ["Basic Info", "Play Style", "Weaknesses", "Openings"]
+    private var steps: [String] { isKidsProfile ? ["Basic Info", "Play Style", "Weaknesses"] : ["Basic Info", "Play Style", "Weaknesses", "Openings"] }
     private var elo: Int { Int(eloString) ?? 1200 }
 
     var body: some View {
@@ -91,8 +92,55 @@ struct PlayerAssessmentView: View {
     // MARK: - Step Views
     var basicInfoStep: some View {
         VStack(spacing: 20) {
+            // Kids mode toggle — shown first, simplifies remaining steps
+            AssessmentCard(title: "Who's playing?", icon: "person.2") {
+                VStack(spacing: 10) {
+                    Button {
+                        isKidsProfile = false
+                    } label: {
+                        HStack {
+                            Image(systemName: isKidsProfile ? "circle" : "checkmark.circle.fill")
+                                .foregroundColor(isKidsProfile ? .gray : .blue)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Adult / Teen")
+                                    .foregroundColor(.primary)
+                                    .font(.subheadline)
+                                Text("Full chess training with analysis")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(12)
+                        .background(!isKidsProfile ? Color.blue.opacity(0.1) : Color(.systemBackground))
+                        .cornerRadius(10)
+                    }
+                    Button {
+                        isKidsProfile = true
+                        eloString = "500"  // Kids start at beginner level
+                    } label: {
+                        HStack {
+                            Image(systemName: isKidsProfile ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(isKidsProfile ? .orange : .gray)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Child (under 12) 🌟")
+                                    .foregroundColor(.primary)
+                                    .font(.subheadline)
+                                Text("Fun, encouraging mode with rewards")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(12)
+                        .background(isKidsProfile ? Color.orange.opacity(0.1) : Color(.systemBackground))
+                        .cornerRadius(10)
+                    }
+                }
+            }
+
             AssessmentCard(title: "What's your name?", icon: "person") {
-                TextField("Your name", text: $playerName)
+                TextField(isKidsProfile ? "Your nickname" : "Your name", text: $playerName)
                     .textFieldStyle(.roundedBorder)
                     .font(.title3)
             }
@@ -291,6 +339,12 @@ struct PlayerAssessmentView: View {
         profile.endgameAccuracy = 50.0
         profile.calculationScore = 50.0
         profile.strategyScore = 50.0
+
+        if isKidsProfile {
+            var kidsSettings = appState.settings
+            kidsSettings.uiMode = .kids
+            appState.updateSettings(kidsSettings)
+        }
 
         appState.savePlayerProfile(profile)
     }

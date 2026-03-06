@@ -9,6 +9,7 @@ class AppState: ObservableObject {
     @Published var weeklyPlan: WeeklyTrainingPlan?
     @Published var achievements: [Achievement] = []
     @Published var trainingStreak: Int = 0
+    @Published var pendingAchievement: Achievement? = nil  // drives toast banner
 
     private let persistence = PersistenceService.shared
 
@@ -140,6 +141,15 @@ class AppState: ObservableObject {
         if !newAchievements.isEmpty {
             achievements.append(contentsOf: newAchievements)
             persistence.saveAchievements(achievements)
+            // Show the first newly earned achievement as a toast
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.pendingAchievement = newAchievements.first
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                    if self.pendingAchievement?.id == newAchievements.first?.id {
+                        self.pendingAchievement = nil
+                    }
+                }
+            }
         }
     }
 }
