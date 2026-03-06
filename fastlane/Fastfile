@@ -138,19 +138,33 @@ platform :ios do
     increment_version_number(version_number: version)
     increment_build_number(build_number:   build)
 
-    # Read the profile name match stored in lane_context after running.
+    # Read the profile names match stored in lane_context after running.
     # match 2.x populates MATCH_PROVISIONING_PROFILE_MAPPING in lane_context;
     # ENV-based lookup is unreliable across match versions.
-    bundle_id    = "com.chess4u.Chess4U"
-    profile_name = lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING][bundle_id]
+    mapping             = lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]
+    bundle_id           = "com.chess4u.Chess4U"
+    widget_id           = "com.chess4u.Chess4U.Widget"
+    profile_name        = mapping[bundle_id]
+    widget_profile_name = mapping[widget_id]
     UI.user_error!("Profile for #{bundle_id} not found in match mapping — did match run successfully?") if profile_name.nil?
+    UI.user_error!("Profile for #{widget_id} not found in match mapping — did match run successfully?") if widget_profile_name.nil?
 
     update_code_signing_settings(
       use_automatic_signing: false,
       path:               "Chess4U.xcodeproj",
       team_id:            ENV["DEVELOPMENT_TEAM"],
       code_sign_identity: "Apple Distribution",
-      profile_name:       profile_name
+      profile_name:       profile_name,
+      targets:            ["Chess4U"]
+    )
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path:               "Chess4U.xcodeproj",
+      team_id:            ENV["DEVELOPMENT_TEAM"],
+      code_sign_identity: "Apple Distribution",
+      profile_name:       widget_profile_name,
+      targets:            ["Chess4UWidget"]
     )
 
     # Build & sign

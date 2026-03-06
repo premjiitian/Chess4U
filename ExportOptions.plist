@@ -16,6 +16,8 @@
     <dict>
         <key>com.chess4u.Chess4U</key>
         <string>Chess4U AppStore</string>
+        <key>com.chess4u.Chess4U.Widget</key>
+        <string>Chess4U Widget AppStore</string>
     </dict>
 </dict>
 </plist>
