@@ -1,0 +1,37 @@
+# ── Xcode ──────────────────────────────────────────────────────────────────
+build/
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ── Swift Package Manager ──────────────────────────────────────────────────
+.build/
+Packages/
+xcuserdata/
+*.resolved
+
+# ── Fastlane ───────────────────────────────────────────────────────────────
+fastlane/report.xml
+fastlane/test_output/
+# Keep screenshots committed so App Store review can see them offline
+# fastlane/screenshots/ — intentionally NOT ignored
+
+# ── Local secrets — NEVER commit ──────────────────────────────────────────
+scripts/.env
+.env
+*.p8
+
+# ── macOS ──────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# ── Ruby / Bundler ─────────────────────────────────────────────────────────
+vendor/
+.bundle/
