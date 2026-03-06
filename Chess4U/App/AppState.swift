@@ -102,7 +102,16 @@ class AppState: ObservableObject {
             profile.sessionsCompleted += 1
             profile.totalPuzzlesSolved += session.puzzlesSolved
             profile.lastSessionDate = Date()
+            // Merge per-theme puzzle results into lifetime stats
+            for (themeKey, result) in session.themeResults {
+                profile.themeAttempts[themeKey, default: 0] += result.attempts
+                profile.themeSolved[themeKey, default: 0] += result.solved
+            }
             savePlayerProfile(profile)
+            // Save session history for widget today-count
+            var history = persistence.loadSessionHistory()
+            history.append(session)
+            persistence.saveSessionHistory(history)
             // Prompt for App Store review after 5, 20, and 50 sessions
             let milestones = [5, 20, 50]
             if milestones.contains(profile.sessionsCompleted) {
@@ -112,7 +121,7 @@ class AppState: ObservableObject {
         checkAndAwardAchievements()
     }
 
-    func recordGameCompleted() {
+    func recordGameCompleted(openingName: String? = nil, playerWon: Bool? = nil, isDraw: Bool = false) {
         // Called after each free-play game finishes
         let key = "Chess4U_GamesPlayed"
         let count = UserDefaults.standard.integer(forKey: key) + 1
@@ -120,6 +129,11 @@ class AppState: ObservableObject {
         let milestones = [5, 25, 100]
         if milestones.contains(count) {
             requestAppStoreReview()
+        }
+        // Record opening mastery
+        if let name = openingName, !name.isEmpty, var profile = playerProfile {
+            profile.recordOpeningResult(name: name, won: playerWon, isDraw: isDraw)
+            savePlayerProfile(profile)
         }
     }
 

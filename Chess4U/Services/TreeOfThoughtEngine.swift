@@ -147,58 +147,76 @@ final class TreeOfThoughtEngine {
     }
 
     // MARK: - Generate Training Session
-    func generateSession(type: TrainingType, profile: PlayerProfile) -> TrainingSession {
+    func generateSession(type: TrainingType, profile: PlayerProfile,
+                         difficulty: PuzzleDifficulty? = nil,
+                         weakThemes: [PuzzleTheme] = []) -> TrainingSession {
         let band = profile.band
         var session = TrainingSession(type: type, playerBand: band, startDate: Date())
 
-        // Generate warmup puzzles
-        session.warmupPuzzles = generateWarmupPuzzles(for: band)
-
-        // Set concept lesson
+        session.warmupPuzzles = generateWarmupPuzzles(for: band, difficulty: difficulty)
         session.conceptLesson = ConceptLesson.lesson(for: type, band: band)
-
-        // Generate main puzzles
-        session.mainPuzzles = generateMainPuzzles(type: type, band: band, count: 5)
-
+        session.mainPuzzles = generateMainPuzzles(type: type, band: band, count: 5,
+                                                  difficulty: difficulty, weakThemes: weakThemes)
         return session
     }
 
-    private func generateWarmupPuzzles(for band: PlayerBand) -> [ChessPuzzle] {
-        let difficulty: PuzzleDifficulty
-        switch band {
-        case .bandA: difficulty = .beginner
-        case .bandB: difficulty = .easy
-        case .bandC: difficulty = .medium
-        case .bandD: difficulty = .hard
-        case .bandE: difficulty = .expert
-        }
-        return ChessPuzzle.puzzleDatabase
-            .filter { $0.difficulty == difficulty }
-            .shuffled()
-            .prefix(5)
-            .map { $0 }
+    private func generateWarmupPuzzles(for band: PlayerBand, difficulty: PuzzleDifficulty? = nil) -> [ChessPuzzle] {
+        let targetDifficulty: PuzzleDifficulty = difficulty ?? {
+            switch band {
+            case .bandA: return .beginner
+            case .bandB: return .easy
+            case .bandC: return .medium
+            case .bandD: return .hard
+            case .bandE: return .expert
+            }
+        }()
+        let filtered = ChessPuzzle.puzzleDatabase.filter { $0.difficulty == targetDifficulty }
+        // Fallback to any difficulty if not enough puzzles
+        let pool = filtered.isEmpty ? ChessPuzzle.puzzleDatabase : filtered
+        return pool.shuffled().prefix(3).map { $0 }
     }
 
-    private func generateMainPuzzles(type: TrainingType, band: PlayerBand, count: Int) -> [ChessPuzzle] {
-        let themes: [PuzzleTheme]
+    private func generateMainPuzzles(type: TrainingType, band: PlayerBand, count: Int,
+                                     difficulty: PuzzleDifficulty? = nil,
+                                     weakThemes: [PuzzleTheme] = []) -> [ChessPuzzle] {
+        let baseThemes: [PuzzleTheme]
         switch type {
         case .tactics:
-            themes = [.fork, .pin, .skewer, .discoveredAttack, .doubleCheck, .deflection, .combination]
+            baseThemes = [.fork, .pin, .skewer, .discoveredAttack, .doubleCheck, .deflection, .combination]
         case .endgame:
-            themes = [.endgameTechnique, .passedPawn, .zugzwang]
+            baseThemes = [.endgameTechnique, .passedPawn, .zugzwang]
         case .openings:
-            themes = [.openingTrap]
+            baseThemes = [.openingTrap]
         case .blunderReduction:
-            themes = [.backRankMate, .mateInOne, .mateInTwo]
+            baseThemes = [.backRankMate, .mateInOne, .mateInTwo]
         default:
-            themes = [.middlegameTactics, .combination, .fork]
+            baseThemes = [.middlegameTactics, .combination, .fork]
         }
 
-        return ChessPuzzle.puzzleDatabase
-            .filter { themes.contains($0.theme) }
-            .shuffled()
-            .prefix(count)
-            .map { $0 }
+        // Include known weak themes from this training type (up to 2 extra weak-theme slots)
+        let relevantWeakThemes = weakThemes.filter { baseThemes.contains($0) }.prefix(2)
+        let priorityThemes = Array(relevantWeakThemes) + baseThemes
+
+        let db = ChessPuzzle.puzzleDatabase
+        var pool = db.filter { p in
+            priorityThemes.contains(p.theme) && (difficulty == nil || p.difficulty == difficulty)
+        }
+        if pool.isEmpty {
+            pool = db.filter { priorityThemes.contains($0.theme) }
+        }
+        if pool.isEmpty {
+            pool = db.filter { baseThemes.contains($0.theme) }
+        }
+
+        // Bias: if weak themes exist, put one weak-theme puzzle first
+        var result: [ChessPuzzle] = []
+        if !relevantWeakThemes.isEmpty,
+           let weakPuzzle = pool.filter({ relevantWeakThemes.contains($0.theme) }).randomElement() {
+            result.append(weakPuzzle)
+        }
+        let remaining = pool.filter { p in !result.contains(where: { $0.id == p.id }) }.shuffled()
+        result += Array(remaining.prefix(count - result.count))
+        return result
     }
 
     // MARK: - Blunder Reduction Protocol Questions

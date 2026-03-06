@@ -94,6 +94,22 @@ enum WeaknessArea: String, Codable, CaseIterable, Hashable {
     }
 }
 
+// MARK: - Opening Record
+struct OpeningRecord: Codable, Equatable {
+    var wins: Int = 0
+    var draws: Int = 0
+    var losses: Int = 0
+    var gamesPlayed: Int { wins + draws + losses }
+    var winRate: Double {
+        guard gamesPlayed > 0 else { return 0 }
+        return Double(wins) / Double(gamesPlayed)
+    }
+    var scorePercent: Double {   // FIDE scoring: 1 for win, 0.5 draw, 0 loss
+        guard gamesPlayed > 0 else { return 0 }
+        return (Double(wins) + 0.5 * Double(draws)) / Double(gamesPlayed)
+    }
+}
+
 // MARK: - Player Profile
 struct PlayerProfile: Codable, Identifiable {
     var id: UUID = UUID()
@@ -115,6 +131,13 @@ struct PlayerProfile: Codable, Identifiable {
     var calculationScore: Double = 0.0
     var strategyScore: Double = 0.0
 
+    // MARK: Mistake pattern tracking (keyed by PuzzleTheme.rawValue)
+    var themeAttempts: [String: Int] = [:]
+    var themeSolved: [String: Int] = [:]
+
+    // MARK: Opening mastery (keyed by opening name)
+    var openingStats: [String: OpeningRecord] = [:]
+
     var band: PlayerBand { PlayerBand.band(for: elo) }
 
     var skillScores: [String: Double] {
@@ -125,6 +148,45 @@ struct PlayerProfile: Codable, Identifiable {
             "Calculation": calculationScore,
             "Strategy": strategyScore
         ]
+    }
+
+    /// Puzzle themes where the player has ≥3 attempts and < 40% accuracy, worst first.
+    var weakestThemes: [PuzzleTheme] {
+        PuzzleTheme.allCases.filter { theme in
+            let a = themeAttempts[theme.rawValue] ?? 0
+            let s = themeSolved[theme.rawValue] ?? 0
+            return a >= 3 && Double(s) / Double(a) < 0.4
+        }.sorted { a, b in
+            let ra = accuracy(for: a), rb = accuracy(for: b)
+            return ra < rb
+        }
+    }
+
+    func accuracy(for theme: PuzzleTheme) -> Double {
+        let a = themeAttempts[theme.rawValue] ?? 0
+        let s = themeSolved[theme.rawValue] ?? 0
+        return a > 0 ? Double(s) / Double(a) : 0
+    }
+
+    /// Best openings by score percent (≥3 games played).
+    var bestOpenings: [(name: String, record: OpeningRecord)] {
+        openingStats
+            .filter { $0.value.gamesPlayed >= 3 }
+            .sorted { $0.value.scorePercent > $1.value.scorePercent }
+            .map { ($0.key, $0.value) }
+    }
+
+    mutating func recordPuzzleResult(theme: PuzzleTheme, solved: Bool) {
+        themeAttempts[theme.rawValue, default: 0] += 1
+        if solved { themeSolved[theme.rawValue, default: 0] += 1 }
+    }
+
+    mutating func recordOpeningResult(name: String, won: Bool?, isDraw: Bool) {
+        var record = openingStats[name] ?? OpeningRecord()
+        if isDraw { record.draws += 1 }
+        else if won == true { record.wins += 1 }
+        else { record.losses += 1 }
+        openingStats[name] = record
     }
 
     mutating func updateElo(_ newElo: Int) {

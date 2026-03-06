@@ -125,12 +125,23 @@ struct FreePlayView: View {
         // Automatically prompt for post-game analysis when checkmate or stalemate.
         .onChange(of: vm.game.status) { status in
             switch status {
-            case .checkmate, .stalemate, .draw, .resigned(_):
+            case .checkmate:
                 clock.pause()
-                appState.recordGameCompleted()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    showingAnalysis = true
-                }
+                // White wins on checkmate when it's black's turn (black king is mated)
+                let whiteWon = vm.game.board.activeColor == .black
+                appState.recordGameCompleted(openingName: openingName,
+                                             playerWon: vsMode == .vsAI ? whiteWon : nil,
+                                             isDraw: false)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { showingAnalysis = true }
+            case .stalemate, .draw:
+                clock.pause()
+                appState.recordGameCompleted(openingName: openingName, playerWon: nil, isDraw: true)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { showingAnalysis = true }
+            case .resigned(let losingColor):
+                clock.pause()
+                let playerWon: Bool? = vsMode == .vsAI ? (losingColor != .white) : nil
+                appState.recordGameCompleted(openingName: openingName, playerWon: playerWon, isDraw: false)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { showingAnalysis = true }
             default: break
             }
         }

@@ -51,6 +51,12 @@ enum TrainingType: String, Codable, CaseIterable {
     }
 }
 
+// MARK: - Per-theme result within a single session
+struct ThemeSessionResult: Codable {
+    var attempts: Int = 0
+    var solved: Int = 0
+}
+
 // MARK: - Training Session
 struct TrainingSession: Codable, Identifiable {
     var id: UUID = UUID()
@@ -67,6 +73,8 @@ struct TrainingSession: Codable, Identifiable {
     var warmupPuzzles: [ChessPuzzle] = []
     var mainPuzzles: [ChessPuzzle] = []
     var currentPuzzleIndex: Int = 0
+    /// Per-theme puzzle results, keyed by PuzzleTheme.rawValue
+    var themeResults: [String: ThemeSessionResult] = [:]
 
     var accuracy: Double {
         guard totalMoves > 0 else { return 0 }

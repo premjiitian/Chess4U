@@ -23,6 +23,7 @@ class TrainingViewModel: ObservableObject {
     private let thoughtEngine = TreeOfThoughtEngine.shared
     private var puzzleStartTime: Date = Date()
     private var cancellables = Set<AnyCancellable>()
+    private var solvedPuzzleIndices: Set<Int> = []
     var profile: PlayerProfile?
 
     init(profile: PlayerProfile? = nil) {
@@ -40,7 +41,15 @@ class TrainingViewModel: ObservableObject {
         )
         if profile == nil { self.profile = effectiveProfile }
         let profile = effectiveProfile
-        session = thoughtEngine.generateSession(type: type, profile: profile)
+        // Seed adaptive difficulty from the player's band
+        let settings = adaptive.recommendedSettings(for: profile)
+        adaptive.currentDifficulty = settings.puzzleDifficulty
+        adaptive.shouldShowHints = settings.showHints
+        adaptive.shouldShowArrows = settings.showArrows
+        solvedPuzzleIndices = []
+        session = thoughtEngine.generateSession(type: type, profile: profile,
+                                                difficulty: adaptive.currentDifficulty,
+                                                weakThemes: profile.weakestThemes)
         showLesson = session?.conceptLesson != nil
         isSessionComplete = false
         sessionScore = 0
@@ -51,7 +60,7 @@ class TrainingViewModel: ObservableObject {
     }
 
     // MARK: - Load Puzzle
-    func loadPuzzle(_ puzzle: ChessPuzzle) {
+    func loadPuzzle(_ puzzle: ChessPuzzle, index: Int? = nil) {
         currentPuzzle = puzzle
         solutionMoves = puzzle.solution
         currentSolutionIndex = 0
@@ -129,6 +138,7 @@ class TrainingViewModel: ObservableObject {
         puzzleState = .solved
         let timeSpent = Date().timeIntervalSince(puzzleStartTime)
         adaptive.recordResult(correct: true, timeSpent: timeSpent)
+        solvedPuzzleIndices.insert(session?.currentPuzzleIndex ?? 0)
 
         if var puzzle = currentPuzzle {
             puzzle.solvedCorrectly = true
@@ -180,13 +190,27 @@ class TrainingViewModel: ObservableObject {
         guard var session = session else { return }
 
         let allPuzzles = session.warmupPuzzles + session.mainPuzzles
-        let nextIndex = session.currentPuzzleIndex + 1
+        let prevIndex = session.currentPuzzleIndex
 
+        // Record per-theme result for the puzzle we just finished
+        if prevIndex < allPuzzles.count {
+            let theme = allPuzzles[prevIndex].theme
+            let key = theme.rawValue
+            let wasSolved = solvedPuzzleIndices.contains(prevIndex)
+            if session.themeResults[key] == nil {
+                session.themeResults[key] = ThemeSessionResult()
+            }
+            session.themeResults[key]!.attempts += 1
+            if wasSolved { session.themeResults[key]!.solved += 1 }
+        }
+
+        let nextIndex = prevIndex + 1
         if nextIndex < allPuzzles.count {
             session.currentPuzzleIndex = nextIndex
             self.session = session
             loadPuzzle(allPuzzles[nextIndex])
         } else {
+            self.session = session
             completeSession()
         }
     }
