@@ -1,7 +1,10 @@
 Chess4U is a chess training app. No account or login is required — all data is stored locally on device.
 
 To review the app:
-1. Complete the onboarding assessment (tap any skill level)
-2. Explore training modes from the Train tab
-3. Play a game on the Board tab
-4. View your skill profile and achievements on the Profile tab
+1. Complete the onboarding assessment (select any skill level / tap "Skip" for guest mode)
+2. From the Train tab, check the Coach Alert banner at the top (appears when a weakness is detected)
+3. Explore any of the 8 training modes — tap a card in the Training grid
+4. Play a game on the Board tab
+5. On the Dashboard, scroll down to see the Focus Areas card (shows weakest puzzle themes)
+6. On the Profile tab, scroll to see Puzzle Theme Accuracy and Opening Mastery sections
+7. View achievements on the Profile tab or via the Achievements link

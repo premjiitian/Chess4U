@@ -1,1 +1,1 @@
-chess,tactics,openings,endgames,coach,trainer,puzzles,learn chess,improve chess,elo
+chess,tactics,openings,endgames,coach,trainer,puzzles,learn chess,improve chess,elo,blunder,analysis

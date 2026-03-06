@@ -19,16 +19,26 @@ Chess4U's AI coach watches your every move and delivers real-time advice tuned t
 
 The Tree-of-Thought engine selects your next training task by targeting your biggest weaknesses while avoiding fatigue — keeping your improvement curve as steep as possible.
 
+Coach Alert detects the puzzle theme you struggle with most and surfaces a targeted training session the moment you open the Training tab. Focus Areas on your dashboard shows your two weakest themes with live accuracy data and one-tap practice links — so you always know exactly what to fix.
+
 ━━ YOUR PERSONAL SKILL PROFILE ━━
 
 Start with a quick assessment that places you in one of five skill bands (800–2000 Elo). As you train, your profile tracks accuracy, weaknesses, and strengths across opening, middlegame, and endgame play — giving you a clear picture of where you are and where you're heading.
+
+Opening Mastery records your win, draw, and loss record for every opening you practice, showing a FIDE score percentage and a segmented W/D/L bar at a glance. Puzzle Theme Accuracy ranks all themes you've attempted, worst-first, so you always know which patterns to work on next.
 
 ━━ STAY MOTIVATED ━━
 
 • Skill radar chart — see all your strengths at a glance
 • Weekly training plan — know exactly what to work on each day
 • Training streak — build the habit of daily improvement
+• Daily puzzle — a fresh challenge every day with its own streak counter
 • Achievements — celebrate milestones on your chess journey
+• Home-screen widget — your training streak on your lock screen
+
+━━ PRIVACY FIRST ━━
+
+No account, no login, no tracking. Everything Chess4U learns about your game stays on your device.
 
 Whether you've just learned the moves or you're pushing past 1800, Chess4U meets you where you are and helps you reach the next level.
 
