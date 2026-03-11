@@ -1,0 +1,152 @@
+workflows:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Workflow 1 — Build & upload to TestFlight
+  #
+  # Trigger: push a git tag matching v*.*.* (e.g. v1.0.0)
+  #          OR click "Start new build" in the Codemagic web UI.
+  #
+  # Pre-requisites (one-time, in Codemagic UI):
+  #   1. App Store Connect API key
+  #      Teams → Integrations → App Store Connect → Add
+  #      Name it exactly:  Chess4U_API_Key
+  #      Paste your Key ID, Issuer ID, and .p8 content.
+  #
+  #   2. That's it — Codemagic manages certificates & profiles automatically.
+  # ─────────────────────────────────────────────────────────────────────────
+  ios-testflight:
+    name: Build & Upload to TestFlight
+    max_build_duration: 120
+
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "v*.*.*"
+          include: true
+      cancel_previous_builds: true
+
+    integrations:
+      app_store_connect: Chess4U_API_Key   # must match the name in Codemagic UI
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.chess4u.Chess4U
+      xcode: 16.2
+      vars:
+        BUNDLE_ID: com.chess4u.Chess4U
+        WIDGET_BUNDLE_ID: com.chess4u.Chess4U.Widget
+
+    scripts:
+      - name: Set version & build number
+        script: |
+          # Version from tag (v1.0.0 → 1.0.0) or fallback
+          VERSION="${FCI_TAG#v}"
+          VERSION="${VERSION:-1.0.0}"
+          xcrun agvtool new-marketing-version "$VERSION"
+          xcrun agvtool new-version -all "$BUILD_NUMBER"
+
+      - name: Install Ruby gems
+        script: bundle install
+
+      - name: Resolve provisioning profiles
+        # Downloads the distribution certificate + profiles for both the main
+        # app and the widget extension via the App Store Connect API integration.
+        # This replaces fastlane match entirely — no certs repo needed.
+        script: xcode-project use-profiles
+
+      - name: Build & archive
+        script: |
+          xcodebuild \
+            -project Chess4U.xcodeproj \
+            -scheme Chess4U \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath "$CM_BUILD_DIR/Chess4U.xcarchive" \
+            clean archive \
+            CODE_SIGN_STYLE=Manual \
+            | xcpretty
+
+      - name: Export IPA
+        script: |
+          # CM_EXPORT_OPTIONS_PATH is set by xcode-project use-profiles above
+          # and contains a correctly-filled ExportOptions.plist (team ID,
+          # profile names) that matches the downloaded profiles exactly.
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$CM_BUILD_DIR/Chess4U.xcarchive" \
+            -exportPath "$CM_BUILD_DIR/ipa" \
+            -exportOptionsPlist "$CM_EXPORT_OPTIONS_PATH" \
+            | xcpretty
+
+    artifacts:
+      - "$CM_BUILD_DIR/ipa/*.ipa"
+      - "$CM_BUILD_DIR/Chess4U.xcarchive"
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - "Internal Testing"
+      email:
+        recipients:
+          - premjiitian@gmail.com
+        notify:
+          success: true
+          failure: true
+
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Workflow 2 — Submit to App Store review
+  #
+  # Run AFTER a TestFlight build has finished processing on Apple's servers.
+  # Trigger manually from the Codemagic web UI.
+  # ─────────────────────────────────────────────────────────────────────────
+  ios-appstore-submit:
+    name: Submit to App Store Review
+    max_build_duration: 30
+
+    triggering:
+      events: []   # manual only
+
+    integrations:
+      app_store_connect: Chess4U_API_Key
+
+    environment:
+      xcode: 16.2
+      vars:
+        BUILD_NUMBER_TO_SUBMIT: ""   # leave blank to submit latest processed build
+
+    scripts:
+      - name: Install Ruby gems
+        script: bundle install
+
+      - name: Capture App Store screenshots
+        script: |
+          xcrun simctl boot "iPhone 16 Pro Max"    || true
+          xcrun simctl boot "iPhone 16 Plus"       || true
+          xcrun simctl boot "iPad Pro 13-inch (M4)" || true
+          bundle exec fastlane screenshots
+
+      - name: Submit metadata + screenshots for App Store review
+        script: |
+          bundle exec fastlane release
+        env:
+          APP_STORE_CONNECT_API_KEY_ID:     $APP_STORE_CONNECT_KEY_IDENTIFIER
+          APP_STORE_CONNECT_ISSUER_ID:      $APP_STORE_CONNECT_ISSUER_ID
+          APP_STORE_CONNECT_API_KEY_BASE64: $APP_STORE_CONNECT_PRIVATE_KEY
+          BUILD_NUMBER:                     $BUILD_NUMBER_TO_SUBMIT
+
+    artifacts:
+      - fastlane/screenshots/**/*.png
+
+    publishing:
+      email:
+        recipients:
+          - premjiitian@gmail.com
+        notify:
+          success: true
+          failure: true
