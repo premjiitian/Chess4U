@@ -118,7 +118,9 @@ workflows:
     environment:
       xcode: 16.2
       vars:
-        BUILD_NUMBER_TO_SUBMIT: ""   # leave blank to submit latest processed build
+        APP_STORE_CONNECT_API_KEY_ID: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        APP_STORE_CONNECT_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
+        APP_STORE_CONNECT_API_KEY_BASE64: $APP_STORE_CONNECT_PRIVATE_KEY
 
     scripts:
       - name: Install Ruby gems
@@ -132,13 +134,7 @@ workflows:
           bundle exec fastlane screenshots
 
       - name: Submit metadata + screenshots for App Store review
-        script: |
-          bundle exec fastlane release
-        env:
-          APP_STORE_CONNECT_API_KEY_ID:     $APP_STORE_CONNECT_KEY_IDENTIFIER
-          APP_STORE_CONNECT_ISSUER_ID:      $APP_STORE_CONNECT_ISSUER_ID
-          APP_STORE_CONNECT_API_KEY_BASE64: $APP_STORE_CONNECT_PRIVATE_KEY
-          BUILD_NUMBER:                     $BUILD_NUMBER_TO_SUBMIT
+        script: bundle exec fastlane release
 
     artifacts:
       - fastlane/screenshots/**/*.png
