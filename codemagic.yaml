@@ -112,6 +112,11 @@ workflows:
 
     environment:
       xcode: 16.2
+      vars:
+        # Fastfile reads these specific names via its api_key helper
+        APP_STORE_CONNECT_API_KEY_ID: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        APP_STORE_CONNECT_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
+        APP_STORE_CONNECT_API_KEY_BASE64: $APP_STORE_CONNECT_PRIVATE_KEY
 
     scripts:
       - name: Install Ruby gems
