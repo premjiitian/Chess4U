@@ -7,12 +7,12 @@ workflows:
   #          OR click "Start new build" in the Codemagic web UI.
   #
   # Pre-requisites (one-time, in Codemagic UI):
-  #   1. App Store Connect API key
-  #      Teams → Integrations → App Store Connect → Add
-  #      Name it exactly:  Chess4U_API_Key
-  #      Paste your Key ID, Issuer ID, and .p8 content.
+  #   Open the app → Environment variables → Add the following (mark as secret):
+  #     APP_STORE_CONNECT_KEY_IDENTIFIER  — your Key ID (e.g. ABC1234567)
+  #     APP_STORE_CONNECT_ISSUER_ID       — your Issuer ID (UUID)
+  #     APP_STORE_CONNECT_PRIVATE_KEY     — full contents of your .p8 file
   #
-  #   2. That's it — Codemagic manages certificates & profiles automatically.
+  #   That's it — Codemagic manages certificates & profiles automatically.
   # ─────────────────────────────────────────────────────────────────────────
   ios-testflight:
     name: Build & Upload to TestFlight
@@ -25,9 +25,6 @@ workflows:
         - pattern: "v*.*.*"
           include: true
       cancel_previous_builds: true
-
-    integrations:
-      app_store_connect: Chess4U_API_Key   # must match the name in Codemagic UI
 
     environment:
       ios_signing:
@@ -54,7 +51,7 @@ workflows:
 
       - name: Resolve provisioning profiles
         # Downloads the distribution certificate + profiles for both the main
-        # app and the widget extension via the App Store Connect API integration.
+        # app and the widget extension via the App Store Connect API credentials.
         # This replaces fastlane match entirely — no certs repo needed.
         script: xcode-project use-profiles
 
@@ -89,7 +86,7 @@ workflows:
 
     publishing:
       app_store_connect:
-        auth: integration
+        auth: environment
         submit_to_testflight: true
         beta_groups:
           - "Internal Testing"
@@ -113,9 +110,6 @@ workflows:
 
     triggering:
       events: []   # manual only
-
-    integrations:
-      app_store_connect: Chess4U_API_Key
 
     environment:
       xcode: 16.2
