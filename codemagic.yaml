@@ -44,6 +44,8 @@ workflows:
           # Version from tag (v1.0.0 → 1.0.0) or fallback
           VERSION="${FCI_TAG#v}"
           VERSION="${VERSION:-1.0.0}"
+          # BUILD_NUMBER is set by Codemagic; fall back to 1 for manual/branch builds
+          BUILD_NUMBER="${BUILD_NUMBER:-1}"
           xcrun agvtool new-marketing-version "$VERSION"
           xcrun agvtool new-version -all "$BUILD_NUMBER"
 
