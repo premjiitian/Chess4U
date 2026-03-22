@@ -7,7 +7,7 @@ workflows:
   #          OR click "Start new build" in the Codemagic web UI.
   #
   # Pre-requisites (one-time, in Codemagic UI):
-  #   Open the app → Environment variables → Add the following (mark as secret):
+  #   Open the app → Environment variables → create group "appstore", add:
   #     APP_STORE_CONNECT_KEY_IDENTIFIER  — your Key ID (e.g. ABC1234567)
   #     APP_STORE_CONNECT_ISSUER_ID       — your Issuer ID (UUID)
   #     APP_STORE_CONNECT_PRIVATE_KEY     — full contents of your .p8 file
@@ -27,6 +27,8 @@ workflows:
       cancel_previous_builds: true
 
     environment:
+      groups:
+        - appstore
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.chess4u.Chess4U
@@ -86,6 +88,9 @@ workflows:
 
     publishing:
       app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
         beta_groups:
           - "Internal Testing"
@@ -111,6 +116,8 @@ workflows:
       events: []   # manual only
 
     environment:
+      groups:
+        - appstore
       xcode: 16.2
       vars:
         # Fastfile reads these specific names via its api_key helper
