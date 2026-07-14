@@ -64,6 +64,17 @@ jobs:
       - name: Select Xcode 16
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
 
+      - name: Ensure iOS platform/simulator runtime is installed
+        # Known macos-15 runner issue (actions/runner-images#13317): actool's asset
+        # catalog compilation cross-checks against installed Simulator runtimes even
+        # for a real-device archive build, and fails with "No simulator runtime
+        # version ... available to use with iphonesimulator SDK version" if the
+        # image's pre-installed runtimes don't line up with this Xcode version.
+        # Downloading the iOS platform explicitly resolves it.
+        run: |
+          xcodebuild -downloadPlatform iOS || echo "Download failed, continuing anyway..."
+          xcrun simctl list runtimes || true
+
       - name: Configure git identity for match
         run: |
           git config --global user.email "ci@chess4u.app"
