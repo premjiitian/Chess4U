@@ -345,6 +345,7 @@
 				2F085055D28F6269FE0DC565 /* FreePlayView.swift */,
 				EB05A9E34FA40DA308FB083C /* OpeningTrainingView.swift */,
 				F1E2D3C4B5A6978869504132 /* EndgameTrainingView.swift */,
+				A1B2C3D4E5F60001AAAA1004 /* DailyPuzzleView.swift */,
 			);
 			path = Training;
 			sourceTree = "<group>";
@@ -353,7 +354,6 @@
 			isa = PBXGroup;
 			children = (
 				5F91746F4F654991BB200034 /* ImportGamesView.swift */,
-				A1B2C3D4E5F60001AAAA1004 /* DailyPuzzleView.swift */,
 				8E24D4596C6970D4E41255C1 /* GameAnalysisView.swift */,
 			);
 			path = Analysis;
