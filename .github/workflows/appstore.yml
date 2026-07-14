@@ -14,15 +14,18 @@ on:
 jobs:
   submit:
     name: Capture Screenshots & Submit to App Store Review
-    runs-on: macos-14
+    # See release.yml for why this needs to be macos-26 / Xcode 26: Apple now
+    # rejects App Store Connect submissions built with anything older than
+    # the iOS 26 SDK.
+    runs-on: macos-26
     if: ${{ github.event.inputs.confirm == 'submit' }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Select Xcode 16
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+      - name: Select Xcode 26
+        run: sudo xcode-select -s /Applications/Xcode.app
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -31,10 +34,12 @@ jobs:
           bundler-cache: true
 
       - name: Boot simulators for screenshots
+        # Device names updated to match what's actually pre-installed on the
+        # macos-26 runner image (device generations move forward every year).
         run: |
-          xcrun simctl boot "iPhone 16 Pro Max"     || true
-          xcrun simctl boot "iPhone 16 Plus"        || true
-          xcrun simctl boot "iPad Pro 13-inch (M4)" || true
+          xcrun simctl boot "iPhone 17 Pro Max"     || true
+          xcrun simctl boot "iPhone Air"            || true
+          xcrun simctl boot "iPad Pro 13-inch (M5)" || true
 
       - name: Capture screenshots
         env:

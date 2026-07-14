@@ -14,13 +14,14 @@ on:
 jobs:
   release:
     name: Build, Sign & Upload to TestFlight
-    # macos-15 has a confirmed, still-open GitHub bug where xcodebuild archive
-    # fails with "error:iOS 18.2 is not installed" for the generic "Any iOS
-    # Device" destination, even after explicitly downloading the iOS platform
-    # (see actions/runner-images#12758 / #12789). macos-14 does not have this
-    # bug -- build.yml already builds successfully on it -- so use that instead
-    # of continuing to work around a broken runner image.
-    runs-on: macos-14
+    # Apple now rejects App Store Connect uploads built with anything older
+    # than the iOS 26 SDK ("This app was built with the iOS 18.2 SDK. All iOS
+    # and iPadOS apps must be built with the iOS 26 SDK or later"), which
+    # requires Xcode 26. macos-26 is the current GA runner image that ships
+    # Xcode 26 by default (Xcode 26.4.1 as of this writing). macos-14/15 only
+    # bundle up to Xcode 16.2, which can never pass App Store Connect's
+    # validation regardless of any other fix.
+    runs-on: macos-26
 
     steps:
       - name: Checkout repository
@@ -67,8 +68,8 @@ jobs:
           )
           echo "APP_STORE_CONNECT_API_KEY_BASE64=$normalized" >> "$GITHUB_ENV"
 
-      - name: Select Xcode 16
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+      - name: Select Xcode 26
+        run: sudo xcode-select -s /Applications/Xcode.app
 
       - name: Configure git identity for match
         run: |

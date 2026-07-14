@@ -33,7 +33,7 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.chess4u.Chess4U
-      xcode: 16.2
+      xcode: 26.4
       vars:
         BUNDLE_ID: com.chess4u.Chess4U
         WIDGET_BUNDLE_ID: com.chess4u.Chess4U.Widget
@@ -116,7 +116,7 @@ workflows:
       app_store_connect: Chess4U_API_Key
 
     environment:
-      xcode: 16.2
+      xcode: 26.4
       vars:
         APP_STORE_CONNECT_API_KEY_ID: $APP_STORE_CONNECT_KEY_IDENTIFIER
         APP_STORE_CONNECT_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
