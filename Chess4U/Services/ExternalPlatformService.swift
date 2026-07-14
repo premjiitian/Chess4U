@@ -10,6 +10,11 @@ struct ExternalGame: Identifiable {
     let result: String
     let timeControl: String
     let endTime: Date
+    /// Both players' ratings at the time the game was played, when the
+    /// platform's API reports them -- shown on puzzles generated from this
+    /// game so the player has context on the strength of the opposition.
+    var whiteRating: Int? = nil
+    var blackRating: Int? = nil
 
     enum Platform: String {
         case chesscom = "chess.com"
@@ -32,17 +37,45 @@ final class ExternalPlatformService: ObservableObject {
     // MARK: - Chess.com API
     /// Fetches up to `maxGames` of the most recent monthly-archive games for a chess.com user.
     func fetchChesscomGames(username: String, maxGames: Int = 20) async throws -> [ExternalGame] {
-        let archivesURL = URL(string: "https://api.chess.com/pub/player/\(username.lowercased())/games/archives")!
-        let (archivesData, _) = try await URLSession.shared.data(from: archivesURL)
-
-        struct Archives: Decodable { let archives: [String] }
-        let archives = try JSONDecoder().decode(Archives.self, from: archivesData)
-        guard let latestArchiveURLStr = archives.archives.last,
+        let archives = try await fetchChesscomArchiveURLs(username: username)
+        guard let latestArchiveURLStr = archives.last,
               let latestURL = URL(string: latestArchiveURLStr) else {
             return []
         }
+        let games = try await fetchChesscomGames(archiveURL: latestURL)
+        return Array(games.suffix(maxGames))
+    }
 
-        let (gamesData, _) = try await URLSession.shared.data(from: latestURL)
+    /// Fetches every chess.com game played in the last `days` days. Chess.com's
+    /// API is organized into one archive per calendar month, so a 30-day
+    /// window can span two archives (e.g. requested on the 3rd of a month) --
+    /// we walk back from the most recent archive until we pass the cutoff.
+    func fetchChesscomGames(username: String, sinceDaysAgo days: Int) async throws -> [ExternalGame] {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date.distantPast
+        let archives = try await fetchChesscomArchiveURLs(username: username)
+
+        var collected: [ExternalGame] = []
+        // Walk archives newest-first; stop once an entire archive is older than the cutoff.
+        for archiveURLStr in archives.reversed() {
+            guard let url = URL(string: archiveURLStr) else { continue }
+            let games = try await fetchChesscomGames(archiveURL: url)
+            let inRange = games.filter { $0.endTime >= cutoff }
+            collected.append(contentsOf: inRange)
+            // If nothing in this archive was recent enough, earlier archives won't be either.
+            if inRange.isEmpty && !games.isEmpty { break }
+        }
+        return collected.sorted { $0.endTime < $1.endTime }
+    }
+
+    private func fetchChesscomArchiveURLs(username: String) async throws -> [String] {
+        let archivesURL = URL(string: "https://api.chess.com/pub/player/\(username.lowercased())/games/archives")!
+        let (archivesData, _) = try await URLSession.shared.data(from: archivesURL)
+        struct Archives: Decodable { let archives: [String] }
+        return try JSONDecoder().decode(Archives.self, from: archivesData).archives
+    }
+
+    private func fetchChesscomGames(archiveURL: URL) async throws -> [ExternalGame] {
+        let (gamesData, _) = try await URLSession.shared.data(from: archiveURL)
 
         struct ChesscomGame: Decodable {
             let pgn: String?
@@ -50,12 +83,12 @@ final class ExternalPlatformService: ObservableObject {
             let black: Player
             let end_time: Int
             let time_control: String
-            struct Player: Decodable { let username: String; let result: String }
+            struct Player: Decodable { let username: String; let result: String; let rating: Int? }
         }
         struct ChesscomResponse: Decodable { let games: [ChesscomGame] }
 
         let response = try JSONDecoder().decode(ChesscomResponse.self, from: gamesData)
-        let games = response.games.suffix(maxGames).compactMap { g -> ExternalGame? in
+        return response.games.compactMap { g -> ExternalGame? in
             guard let pgn = g.pgn, !pgn.isEmpty else { return nil }
             return ExternalGame(
                 id: "\(g.end_time)-\(g.white.username)-\(g.black.username)",
@@ -65,22 +98,31 @@ final class ExternalPlatformService: ObservableObject {
                 blackPlayer: g.black.username,
                 result: g.white.result == "win" ? "1-0" : g.black.result == "win" ? "0-1" : "1/2-1/2",
                 timeControl: g.time_control,
-                endTime: Date(timeIntervalSince1970: TimeInterval(g.end_time))
+                endTime: Date(timeIntervalSince1970: TimeInterval(g.end_time)),
+                whiteRating: g.white.rating,
+                blackRating: g.black.rating
             )
         }
-        return games.reversed()
     }
 
     // MARK: - Lichess API
     /// Fetches the most recent `maxGames` games for a Lichess user (exported as PGN).
-    func fetchLichessGames(username: String, maxGames: Int = 20) async throws -> [ExternalGame] {
+    /// When `sinceDaysAgo` is provided, only games from that window are requested
+    /// (Lichess supports this natively via the `since` query parameter, in ms).
+    func fetchLichessGames(username: String, maxGames: Int = 20, sinceDaysAgo: Int? = nil) async throws -> [ExternalGame] {
         var components = URLComponents(string: "https://lichess.org/api/games/user/\(username.lowercased())")!
-        components.queryItems = [
+        var queryItems = [
             URLQueryItem(name: "max", value: "\(maxGames)"),
             URLQueryItem(name: "pgnInJson", value: "true"),
             URLQueryItem(name: "clocks", value: "false"),
             URLQueryItem(name: "evals", value: "false")
         ]
+        if let days = sinceDaysAgo {
+            let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date.distantPast
+            let sinceMs = Int(cutoff.timeIntervalSince1970 * 1000)
+            queryItems.append(URLQueryItem(name: "since", value: "\(sinceMs)"))
+        }
+        components.queryItems = queryItems
         guard let url = components.url else { return [] }
 
         var request = URLRequest(url: url)
@@ -130,13 +172,28 @@ final class ExternalPlatformService: ObservableObject {
                 blackPlayer: black,
                 result: result,
                 timeControl: tc,
-                endTime: Date()
+                endTime: Date(),
+                whiteRating: game.players.white.rating,
+                blackRating: game.players.black.rating
             ))
         }
         return games
     }
 
     // MARK: - Convenience
+    /// Fetches every game played on `platform` in the last `days` days --
+    /// used by the "Sync Last 30 Days" puzzle-import flow.
+    func fetchRecentGames(platform: ExternalGame.Platform, username: String, days: Int) async throws -> [ExternalGame] {
+        switch platform {
+        case .chesscom:
+            return try await fetchChesscomGames(username: username, sinceDaysAgo: days)
+        case .lichess:
+            // Lichess has no hard result cap tied to the date window, but we
+            // still bound it generously so a very active player's sync stays fast.
+            return try await fetchLichessGames(username: username, maxGames: 200, sinceDaysAgo: days)
+        }
+    }
+
     func fetchGames(platform: ExternalGame.Platform, username: String, maxGames: Int = 20) async {
         await MainActor.run { isFetching = true; lastError = nil }
         do {

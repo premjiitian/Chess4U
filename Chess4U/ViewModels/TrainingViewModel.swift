@@ -59,6 +59,43 @@ class TrainingViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Start Custom Session (personal puzzles from imported games)
+    /// Builds a session directly from a caller-supplied puzzle list instead
+    /// of pulling from the curated database via TreeOfThoughtEngine -- used
+    /// by "My Puzzles" to practice mistakes/bookmarks from the player's own
+    /// imported games.
+    func startCustomSession(type: TrainingType, puzzles: [ChessPuzzle]) {
+        let effectiveProfile = profile ?? PlayerProfile(
+            name: "Player", elo: 1000,
+            preferredTimeControl: .rapid, playerType: .casual,
+            mainOpeningsWhite: [], mainDefensesBlack: [],
+            ratingTrend: .stable, weaknesses: [.tactics]
+        )
+        if profile == nil { self.profile = effectiveProfile }
+        let profile = effectiveProfile
+
+        let settings = adaptive.recommendedSettings(for: profile)
+        adaptive.currentDifficulty = settings.puzzleDifficulty
+        adaptive.shouldShowHints = settings.showHints
+        adaptive.shouldShowArrows = settings.showArrows
+        solvedPuzzleIndices = []
+
+        session = TrainingSession(
+            type: type,
+            playerBand: profile.band,
+            startDate: Date(),
+            warmupPuzzles: [],
+            mainPuzzles: puzzles
+        )
+        showLesson = false
+        isSessionComplete = false
+        sessionScore = 0
+
+        if let firstPuzzle = puzzles.first {
+            loadPuzzle(firstPuzzle)
+        }
+    }
+
     // MARK: - Load Puzzle
     func loadPuzzle(_ puzzle: ChessPuzzle, index: Int? = nil) {
         currentPuzzle = puzzle

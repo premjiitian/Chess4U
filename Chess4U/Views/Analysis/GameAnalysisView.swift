@@ -3,6 +3,9 @@ import SwiftUI
 struct GameAnalysisView: View {
     @EnvironmentObject var appState: AppState
     let game: ChessGame
+    /// The chess.com/Lichess game this was imported from, if any -- lets a
+    /// saved position be tagged with where it came from.
+    var sourceGame: ExternalGame? = nil
     @StateObject private var vm = GameAnalysisViewModel()
     @ObservedObject private var audioCoach = AudioCoachService.shared
 
@@ -18,9 +21,30 @@ struct GameAnalysisView: View {
             .padding()
         }
         .background(Color(.systemGroupedBackground))
+        .overlay(alignment: .top) {
+            if let confirmation = vm.saveConfirmation {
+                Text(confirmation)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(AppTheme.accent)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                    .shadow(radius: 4)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            withAnimation { vm.saveConfirmation = nil }
+                        }
+                    }
+            }
+        }
         .onAppear {
             vm.profile = appState.playerProfile
             vm.uiMode = appState.settings.uiMode
+            vm.sourceGame = sourceGame
             vm.analyzeGame(game)
         }
     }
@@ -67,6 +91,18 @@ struct GameAnalysisView: View {
                 }
                 .font(.title3)
                 .padding()
+
+                // Bookmark the position currently on the board -- not just
+                // the auto-flagged mistakes -- as a puzzle to practice later.
+                Button {
+                    withAnimation { vm.saveCurrentPositionAsPuzzle() }
+                } label: {
+                    Label("Save This Position as a Puzzle", systemImage: "star.fill")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+                .foregroundColor(AppTheme.accent)
+                .padding(.bottom, 12)
             }
             .background(Color(.systemBackground))
             .cornerRadius(16)

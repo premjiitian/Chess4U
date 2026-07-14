@@ -53,11 +53,17 @@
 		A1B2C3D4E5F60001AAAA1003 /* DailyPuzzleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyPuzzleService.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60001AAAA1005 /* ChessClockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessClockService.swift; sourceTree = "<group>"; };
 		23A67C5269B8413D99AC63E0 /* ExternalPlatformService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalPlatformService.swift; sourceTree = "<group>"; };
+		900482E25CE3EE42E6619F67 /* PersonalPuzzleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalPuzzleService.swift; sourceTree = "<group>"; };
+		D3DE6F4FF379936A2B451AFA /* GameSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameSyncService.swift; sourceTree = "<group>"; };
+		A5CC99C7CABCC73C31531C0A /* MyPuzzlesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPuzzlesView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60001BBBB1001 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1001 /* HapticService.swift */; };
 		A1B2C3D4E5F60001BBBB1002 /* SoundService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1002 /* SoundService.swift */; };
 		A1B2C3D4E5F60001BBBB1003 /* DailyPuzzleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1003 /* DailyPuzzleService.swift */; };
 		A1B2C3D4E5F60001BBBB1005 /* ChessClockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1005 /* ChessClockService.swift */; };
 		DD8690D2D36E40E7A963FAF9 /* ExternalPlatformService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A67C5269B8413D99AC63E0 /* ExternalPlatformService.swift */; };
+		9E48D5F1EB968F6352767000 /* PersonalPuzzleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 900482E25CE3EE42E6619F67 /* PersonalPuzzleService.swift */; };
+		26C1DC1A0C3DCF88A2A05694 /* GameSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3DE6F4FF379936A2B451AFA /* GameSyncService.swift */; };
+		3D387B8B2A5ADC01A72167F9 /* MyPuzzlesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5CC99C7CABCC73C31531C0A /* MyPuzzlesView.swift */; };
 		A1B2C3D4E5F60001BBBB1004 /* DailyPuzzleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1004 /* DailyPuzzleView.swift */; };
 		55ED4B38652B4789919B43C1 /* ImportGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F91746F4F654991BB200034 /* ImportGamesView.swift */; };
 		3ABC3DDEDF51B33892EF57E7 /* AICoachService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98EBD619A99A0601962A14BE /* AICoachService.swift */; };
@@ -346,6 +352,7 @@
 				EB05A9E34FA40DA308FB083C /* OpeningTrainingView.swift */,
 				F1E2D3C4B5A6978869504132 /* EndgameTrainingView.swift */,
 				A1B2C3D4E5F60001AAAA1004 /* DailyPuzzleView.swift */,
+				A5CC99C7CABCC73C31531C0A /* MyPuzzlesView.swift */,
 			);
 			path = Training;
 			sourceTree = "<group>";
@@ -399,6 +406,8 @@
 				EDC734906830EC07A669C490 /* AdaptiveDifficultyService.swift */,
 				963C5179889116BD67E9842B /* PersistenceService.swift */,
 				BD452A37794BBC7BBA0982BD /* TreeOfThoughtEngine.swift */,
+				900482E25CE3EE42E6619F67 /* PersonalPuzzleService.swift */,
+				D3DE6F4FF379936A2B451AFA /* GameSyncService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -633,6 +642,9 @@
 				2AF4C1199109185F6D471547 /* SettingsView.swift in Sources */,
 				4AEBC3F22E71F56EDDEEE9CB /* ChessEngineService.swift in Sources */,
 				DD8690D2D36E40E7A963FAF9 /* ExternalPlatformService.swift in Sources */,
+				9E48D5F1EB968F6352767000 /* PersonalPuzzleService.swift in Sources */,
+				26C1DC1A0C3DCF88A2A05694 /* GameSyncService.swift in Sources */,
+				3D387B8B2A5ADC01A72167F9 /* MyPuzzlesView.swift in Sources */,
 				A1B2C3D4E5F60001BBBB1005 /* ChessClockService.swift in Sources */,
 				A1B2C3D4E5F60001BBBB1003 /* DailyPuzzleService.swift in Sources */,
 				A1B2C3D4E5F60001BBBB1002 /* SoundService.swift in Sources */,

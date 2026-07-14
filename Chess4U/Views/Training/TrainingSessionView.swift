@@ -5,6 +5,9 @@ struct TrainingSessionView: View {
     @StateObject private var vm = TrainingViewModel()
     @Environment(\.presentationMode) var presentationMode
     let trainingType: TrainingType
+    /// When set, the session is built from this exact list (e.g. "My Puzzles")
+    /// instead of the curated database via TreeOfThoughtEngine.
+    var customPuzzles: [ChessPuzzle]? = nil
 
     @State private var showLessonSheet: Bool = false
     @State private var showBlunderSheet: Bool = false
@@ -50,7 +53,11 @@ struct TrainingSessionView: View {
         }
         .onAppear {
             vm.profile = appState.playerProfile
-            vm.startSession(type: trainingType)
+            if let customPuzzles = customPuzzles {
+                vm.startCustomSession(type: trainingType, puzzles: customPuzzles)
+            } else {
+                vm.startSession(type: trainingType)
+            }
             if vm.session?.conceptLesson == nil {
                 phase = .warmup
             }

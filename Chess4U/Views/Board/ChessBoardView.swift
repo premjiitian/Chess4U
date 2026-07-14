@@ -253,13 +253,13 @@ struct ChessBoardView: View {
             if vm.promotionPending != nil {
                 PromotionView(
                     color: vm.game.board.activeColor,
-                    pieceStyle: vm.settings.pieceStyle,
                     onSelect: { piece in
                         vm.handlePromotion(piece: piece)
                         showPromotion = false
                         HapticService.shared.promotion()
                         SoundService.shared.playPromotion()
-                    }
+                    },
+                    pieceStyle: vm.settings.pieceStyle
                 )
             }
         }

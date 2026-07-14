@@ -235,6 +235,11 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
         let missedTactics: [MoveAnalysis] = []
         var goodMoves: [MoveAnalysis] = []
         var evaluations: [Double] = [0.0]
+        // Every move's analysis, regardless of quality bucket -- criticalMistakes
+        // only holds .blunder/.mistake (by design, for the existing accuracy/summary
+        // math below), so .inaccuracy and .acceptable moves would otherwise be
+        // dropped entirely. PersonalPuzzleService needs those too.
+        var allAnalyses: [MoveAnalysis] = []
 
         var currentBoard = ChessBoard()
 
@@ -250,8 +255,15 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
                 move: move,
                 quality: quality,
                 explanation: explanationFor(quality: quality, move: move),
-                evaluation: evaluation
+                evaluation: evaluation,
+                // Position *before* this move was played, plus the engine's
+                // preferred alternative -- both needed to turn a mistake into
+                // a solvable puzzle later (see PersonalPuzzleService).
+                positionFEN: currentBoard.fen,
+                bestAlternative: bestMove
             )
+
+            allAnalyses.append(analysis)
 
             switch quality {
             case .blunder, .mistake:
@@ -276,7 +288,8 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
             goodMoves: goodMoves,
             accuracy: accuracy,
             evaluationHistory: evaluations,
-            improvementAdvice: generateImprovementAdvice(criticalMistakes: criticalMistakes, profile: profile)
+            improvementAdvice: generateImprovementAdvice(criticalMistakes: criticalMistakes, profile: profile),
+            allMoveAnalyses: allAnalyses
         )
     }
 
@@ -396,6 +409,10 @@ struct GameAnalysis {
     var accuracy: Double
     var evaluationHistory: [Double]
     var improvementAdvice: [String]
+    /// Every move's analysis in move order, unfiltered by quality -- used by
+    /// PersonalPuzzleService to find .inaccuracy-quality moves too, which the
+    /// buckets above deliberately exclude.
+    var allMoveAnalyses: [MoveAnalysis] = []
 }
 
 struct MoveAnalysis: Identifiable {
@@ -405,5 +422,8 @@ struct MoveAnalysis: Identifiable {
     var quality: MoveQuality
     var explanation: String
     var evaluation: Double
+    /// FEN of the position immediately before this move was played -- this is
+    /// what lets a mistake become a puzzle (the puzzle starting position).
+    var positionFEN: String = ""
     var bestAlternative: ChessMove? = nil
 }

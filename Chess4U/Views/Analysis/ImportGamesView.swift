@@ -7,16 +7,23 @@ struct ImportGamesView: View {
     @EnvironmentObject var appState: AppState
 
     @ObservedObject private var service = ExternalPlatformService.shared
+    @ObservedObject private var syncService = GameSyncService.shared
     @State private var selectedPlatform: ExternalGame.Platform = .chesscom
     @State private var username: String = ""
     @State private var showingAnalysis: Bool = false
     @State private var gameToAnalyze: ChessGame? = nil
+    @State private var externalGameToAnalyze: ExternalGame? = nil
+    @State private var showingMyPuzzles: Bool = false
 
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 platformPicker
                 usernameField
+                syncButton
+                if let summary = syncService.lastSyncSummary {
+                    syncSummaryBanner(summary)
+                }
                 fetchButton
 
                 if service.isFetching {
@@ -34,11 +41,23 @@ struct ImportGamesView: View {
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
             .navigationTitle("Import Games")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingMyPuzzles = true
+                    } label: {
+                        Label("My Puzzles", systemImage: "star.fill")
+                    }
+                }
+            }
+            .sheet(isPresented: $showingMyPuzzles) {
+                NavigationView { MyPuzzlesView() }
+            }
             .onAppear(perform: loadSavedUsername)
             .sheet(isPresented: $showingAnalysis) {
                 if let game = gameToAnalyze {
                     NavigationView {
-                        GameAnalysisView(game: game)
+                        GameAnalysisView(game: game, sourceGame: externalGameToAnalyze)
                             .navigationTitle("Game Analysis")
                             .toolbar {
                                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -84,6 +103,71 @@ struct ImportGamesView: View {
         }
         .padding()
         .background(Color(.systemBackground))
+    }
+
+    var syncButton: some View {
+        VStack(spacing: 0) {
+            Button {
+                saveUsername()
+                Task {
+                    await syncService.syncRecentGames(
+                        platform: selectedPlatform,
+                        username: username,
+                        days: 30,
+                        profile: appState.playerProfile
+                    )
+                }
+            } label: {
+                HStack {
+                    if syncService.isSyncing {
+                        ProgressView().tint(.white)
+                        Text(syncService.progressText.isEmpty ? "Syncing…" : syncService.progressText)
+                    } else {
+                        Label("Sync Last 30 Days \u{2192} Build Puzzles", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(username.count >= 2 ? AppTheme.accent : Color.gray)
+                .foregroundColor(.white)
+                .cornerRadius(14)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+            }
+            .disabled(username.count < 2 || syncService.isSyncing)
+            .padding(.horizontal)
+            .padding(.top, 8)
+
+            if let error = syncService.lastError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+            }
+        }
+        .background(Color(.systemBackground))
+    }
+
+    func syncSummaryBanner(_ summary: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(AppTheme.accent)
+            Text(summary)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Spacer()
+            Button {
+                showingMyPuzzles = true
+            } label: {
+                Text("View")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(AppTheme.accentLight)
     }
 
     var fetchButton: some View {
@@ -156,6 +240,7 @@ struct ImportGamesView: View {
     private func analyzeGame(_ external: ExternalGame) {
         if let game = PGNImporter.importGame(external.pgn) {
             gameToAnalyze = game
+            externalGameToAnalyze = external
             showingAnalysis = true
         }
     }

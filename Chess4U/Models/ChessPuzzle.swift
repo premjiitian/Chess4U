@@ -41,6 +41,14 @@ enum PuzzleTheme: String, Codable, CaseIterable {
     case openingTrap = "Opening Trap"
     case middlegameTactics = "Middlegame Tactics"
     case combination = "Combination"
+    /// Auto-generated from the player's own imported chess.com/Lichess games
+    /// (see PersonalPuzzleService) -- distinguishes "your mistakes" puzzles
+    /// from the curated database in the UI.
+    case personalMistake = "From Your Games"
+    /// A position the player deliberately bookmarked while reviewing an
+    /// imported game (see GameAnalysisView's "Save Position" button), as
+    /// opposed to one auto-detected from a mistake.
+    case personalBookmark = "Saved From Game"
 
     var icon: String {
         switch self {
@@ -64,6 +72,8 @@ enum PuzzleTheme: String, Codable, CaseIterable {
         case .openingTrap: return "🪤"
         case .middlegameTactics: return "⚡"
         case .combination: return "🌟"
+        case .personalMistake: return "🧩"
+        case .personalBookmark: return "⭐"
         }
     }
 }
@@ -81,6 +91,18 @@ struct ChessPuzzle: Codable, Identifiable {
     var explanation: String
     var hint: String?
     var followUpPositions: [String]?  // FENs after each solution move
+
+    // Personal puzzle provenance -- nil for the built-in curated database,
+    // populated for puzzles auto-generated from the player's own games.
+    var sourcePlatform: String? = nil
+    var sourceGameID: String? = nil
+    var sourceDate: Date? = nil
+    /// Both players' ratings at the time the source game was played, shown
+    /// alongside the date on personal puzzles for context.
+    var sourceWhiteRating: Int? = nil
+    var sourceBlackRating: Int? = nil
+    var sourceWhitePlayer: String? = nil
+    var sourceBlackPlayer: String? = nil
 
     // Tracking
     var attemptCount: Int = 0

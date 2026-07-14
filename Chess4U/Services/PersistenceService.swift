@@ -19,6 +19,8 @@ final class PersistenceService {
         static let sessionHistory = "chess4u.sessionHistory"
         static let savedGames = "chess4u.savedGames"
         static let openingMastery = "chess4u.openingMastery"
+        static let personalPuzzles = "chess4u.personalPuzzles"
+        static let syncedGameIDs = "chess4u.syncedGameIDs"
     }
 
     // MARK: - Player Profile
@@ -129,6 +131,63 @@ final class PersistenceService {
             return []
         }
         return games
+    }
+
+    // MARK: - Personal Puzzles (auto-generated from imported games)
+    /// Puzzles are stored newest-first and capped so the list can't grow
+    /// unbounded after repeated syncs.
+    private let maxPersonalPuzzles = 300
+
+    func savePersonalPuzzles(_ puzzles: [ChessPuzzle]) {
+        if let data = try? encoder.encode(puzzles) {
+            defaults.set(data, forKey: Keys.personalPuzzles)
+        }
+    }
+
+    func loadPersonalPuzzles() -> [ChessPuzzle] {
+        guard let data = defaults.data(forKey: Keys.personalPuzzles),
+              let puzzles = try? decoder.decode([ChessPuzzle].self, from: data) else {
+            return []
+        }
+        return puzzles
+    }
+
+    /// Merges newly generated puzzles into the saved collection, skipping any
+    /// whose FEN we already have (avoids duplicates when the same game is
+    /// synced twice), and returns how many were actually new.
+    @discardableResult
+    func addPersonalPuzzles(_ newPuzzles: [ChessPuzzle]) -> Int {
+        var existing = loadPersonalPuzzles()
+        let existingFENs = Set(existing.map { $0.fen })
+        let trulyNew = newPuzzles.filter { !existingFENs.contains($0.fen) }
+        existing.insert(contentsOf: trulyNew, at: 0)
+        if existing.count > maxPersonalPuzzles {
+            existing = Array(existing.prefix(maxPersonalPuzzles))
+        }
+        savePersonalPuzzles(existing)
+        return trulyNew.count
+    }
+
+    /// Removes specific puzzles from the personal collection by id (used by
+    /// My Puzzles' swipe-to-delete).
+    func deletePersonalPuzzles(ids: [UUID]) {
+        var existing = loadPersonalPuzzles()
+        let idSet = Set(ids)
+        existing.removeAll { idSet.contains($0.id) }
+        savePersonalPuzzles(existing)
+    }
+
+    /// IDs of external games (chess.com/Lichess) already analyzed, so a
+    /// repeat "sync last 30 days" doesn't re-analyze the same games.
+    func loadSyncedGameIDs() -> Set<String> {
+        guard let ids = defaults.stringArray(forKey: Keys.syncedGameIDs) else { return [] }
+        return Set(ids)
+    }
+
+    func markGamesSynced(_ ids: [String]) {
+        var all = loadSyncedGameIDs()
+        all.formUnion(ids)
+        defaults.set(Array(all), forKey: Keys.syncedGameIDs)
     }
 
     // MARK: - Reset
