@@ -65,7 +65,8 @@ struct ChessBoardView: View {
                             highlightColor: vm.highlightedSquares[square],
                             lightColor: vm.squareColor(file: displayFile, rank: displayRank),
                             isActiveColor: vm.game.board[square]?.color == vm.game.board.activeColor,
-                            isInteractive: interactive
+                            isInteractive: interactive,
+                            pieceStyle: vm.settings.pieceStyle
                         )
                         .position(x: CGFloat(file) * squareSize + squareSize / 2,
                                   y: CGFloat(rank) * squareSize + squareSize / 2)
@@ -81,19 +82,11 @@ struct ChessBoardView: View {
                 // Floating dragged piece
                 if let piece = draggedPiece {
                     let fontSize = squareSize * (piece.type == .pawn ? 0.64 : 0.78)
-                    ZStack {
-                        Text(piece.symbolForColor)
-                            .font(.system(size: fontSize))
-                            .foregroundColor(piece.color == .white ? Color(white: 0.05).opacity(0.7) : Color(white: 0.1).opacity(0.3))
-                            .blur(radius: squareSize * 0.04)
-                        Text(piece.symbolForColor)
-                            .font(.system(size: fontSize))
-                            .foregroundColor(piece.color == .white ? Color(white: 0.97) : Color(white: 0.06))
-                    }
-                    .scaleEffect(1.25)  // Piece lifts up when dragged
-                    .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 4)
-                    .position(dragLocation)
-                    .allowsHitTesting(false)
+                    ChessPieceGlyph(piece: piece, fontSize: fontSize, pieceStyle: vm.settings.pieceStyle)
+                        .scaleEffect(1.25)  // Piece lifts up when dragged
+                        .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 4)
+                        .position(dragLocation)
+                        .allowsHitTesting(false)
                 }
             }
             // MARK: Unified Tap + Drag Gesture
@@ -260,6 +253,7 @@ struct ChessBoardView: View {
             if vm.promotionPending != nil {
                 PromotionView(
                     color: vm.game.board.activeColor,
+                    pieceStyle: vm.settings.pieceStyle,
                     onSelect: { piece in
                         vm.handlePromotion(piece: piece)
                         showPromotion = false
@@ -342,6 +336,7 @@ struct ChessSquareView: View {
     let lightColor: Color
     var isActiveColor: Bool = false
     var isInteractive: Bool = true
+    var pieceStyle: PieceStyle = .standard
 
     var body: some View {
         ZStack {
@@ -361,21 +356,10 @@ struct ChessSquareView: View {
                 }
             }
 
-            // Piece — ZStack with blurred dark silhouette for white piece visibility
+            // Piece — solid silhouette + contrasting outline, chess.com/Lichess style
             if let piece = piece {
                 let fontSize = squareSize * (piece.type == .pawn ? 0.64 : 0.78)
-                ZStack {
-                    Text(piece.symbolForColor)
-                        .font(.system(size: fontSize))
-                        .foregroundColor(Color(white: 0.05).opacity(piece.color == .white ? 0.75 : 0.35))
-                        .blur(radius: squareSize * 0.04)
-                    Text(piece.symbolForColor)
-                        .font(.system(size: fontSize))
-                        .minimumScaleFactor(0.5)
-                        .foregroundColor(piece.color == .white
-                            ? Color(white: 0.97)
-                            : Color(white: 0.06))
-                }
+                ChessPieceGlyph(piece: piece, fontSize: fontSize, pieceStyle: pieceStyle)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -414,6 +398,104 @@ struct ChessSquareView: View {
         if isSelected { return Color.yellow.opacity(0.7) }
         if isLastMove { return Color.yellow.opacity(0.4) }
         return lightColor
+    }
+}
+
+// MARK: - Chess Piece Glyph
+/// Renders a chess piece as a solid, outlined silhouette -- the same approach
+/// chess.com and Lichess piece sets use (a filled shape + a contrasting
+/// border) rather than relying on a font's built-in glyph shading. This is
+/// what actually fixes "white pieces are invisible on light squares": the
+/// previous rendering switched between Unicode's hollow "white" glyphs
+/// (♔♕♖♗♘♙) and solid "black" glyphs (♚♛♜♝♞♟), and a hollow outline filled
+/// white on a light square has almost no visible ink no matter what color
+/// you apply. `ChessPiece.symbolForColor` now always returns the solid
+/// glyph variant; this view is what turns that single shape into a properly
+/// legible white-or-black piece by filling it and stroking a contrasting
+/// outline around it (SwiftUI's Text has no native stroke, so the outline is
+/// faked with 8 offset copies of the glyph in the outline color beneath the
+/// fill, which is the standard trick for "outlined text" in SwiftUI).
+struct ChessPieceGlyph: View {
+    let piece: ChessPiece
+    let fontSize: CGFloat
+    /// Which of the four named piece sets (Settings > Piece Style) to render.
+    /// Since the app draws pieces from styled Unicode glyphs rather than
+    /// bundled artwork, each style is differentiated by palette, outline
+    /// weight, and shadow -- not a different glyph shape.
+    var pieceStyle: PieceStyle = .standard
+
+    private var fillColor: Color {
+        switch pieceStyle {
+        case .standard, .neo:
+            return piece.color == .white ? Color(white: 0.99) : Color(white: 0.08)
+        case .alpha:
+            return piece.color == .white ? Color(white: 0.97) : Color(white: 0.10)
+        case .merida:
+            // Warm wood-toned set: ivory vs. walnut, like a traditional wooden board.
+            return piece.color == .white
+                ? Color(red: 0.97, green: 0.91, blue: 0.78)
+                : Color(red: 0.32, green: 0.19, blue: 0.11)
+        }
+    }
+
+    private var strokeColor: Color {
+        switch pieceStyle {
+        case .standard:
+            return piece.color == .white ? Color(white: 0.05) : Color(white: 0.96)
+        case .neo:
+            return piece.color == .white ? Color(red: 0.04, green: 0.09, blue: 0.18) : Color(white: 0.93)
+        case .alpha:
+            return piece.color == .white ? Color.black.opacity(0.8) : Color.white.opacity(0.8)
+        case .merida:
+            return piece.color == .white
+                ? Color(red: 0.36, green: 0.22, blue: 0.10)
+                : Color(red: 0.86, green: 0.72, blue: 0.48)
+        }
+    }
+
+    private var strokeWidth: CGFloat {
+        let factor: CGFloat
+        switch pieceStyle {
+        case .standard: factor = 0.045   // balanced outline
+        case .neo:       factor = 0.065  // bolder, modern flat look
+        case .alpha:      factor = 0.028 // thin, elegant outline
+        case .merida:     factor = 0.05  // traditional wooden-set weight
+        }
+        return max(1, fontSize * factor)
+    }
+
+    private var strokeOffsets: [CGPoint] {
+        let w = strokeWidth
+        return [
+            CGPoint(x: -w, y: -w), CGPoint(x: 0, y: -w), CGPoint(x: w, y: -w),
+            CGPoint(x: -w, y: 0),                          CGPoint(x: w, y: 0),
+            CGPoint(x: -w, y: w),  CGPoint(x: 0, y: w),  CGPoint(x: w, y: w),
+        ]
+    }
+
+    var body: some View {
+        ZStack {
+            // Soft drop shadow for a touch of depth (subtle, not a legibility crutch)
+            Text(piece.symbolForColor)
+                .font(.system(size: fontSize))
+                .foregroundColor(.black.opacity(0.22))
+                .offset(x: 0, y: fontSize * 0.03)
+                .blur(radius: fontSize * 0.02)
+
+            // Faux outline: same glyph, offset in 8 directions, in the stroke color
+            ForEach(0..<strokeOffsets.count, id: \.self) { i in
+                Text(piece.symbolForColor)
+                    .font(.system(size: fontSize))
+                    .foregroundColor(strokeColor)
+                    .offset(x: strokeOffsets[i].x, y: strokeOffsets[i].y)
+            }
+
+            // Solid fill on top
+            Text(piece.symbolForColor)
+                .font(.system(size: fontSize))
+                .minimumScaleFactor(0.5)
+                .foregroundColor(fillColor)
+        }
     }
 }
 
@@ -469,6 +551,7 @@ struct ArrowsView: View {
 struct PromotionView: View {
     let color: PieceColor
     let onSelect: (PieceType) -> Void
+    var pieceStyle: PieceStyle = .standard
     private let pieces: [PieceType] = [.queen, .rook, .bishop, .knight]
 
     var body: some View {
@@ -484,8 +567,7 @@ struct PromotionView: View {
                         Button {
                             onSelect(piece)
                         } label: {
-                            Text(chessPiece.symbolForColor)
-                                .font(.system(size: 48))
+                            ChessPieceGlyph(piece: chessPiece, fontSize: 48, pieceStyle: pieceStyle)
                                 .frame(width: 70, height: 70)
                                 .background(Color.white)
                                 .cornerRadius(12)

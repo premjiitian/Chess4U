@@ -198,6 +198,7 @@ class ChessBoardViewModel: ObservableObject {
         case .midnight:   return Color(red: 0.55, green: 0.65, blue: 0.75)
         case .tournament: return Color(red: 0.92, green: 0.92, blue: 0.86)
         case .coral:      return Color(red: 0.98, green: 0.85, blue: 0.80)
+        case .chessCom:   return Color(red: 0.93, green: 0.91, blue: 0.83)
         }
     }
 
@@ -209,6 +210,7 @@ class ChessBoardViewModel: ObservableObject {
         case .midnight:   return Color(red: 0.25, green: 0.35, blue: 0.50)
         case .tournament: return Color(red: 0.50, green: 0.65, blue: 0.38)
         case .coral:      return Color(red: 0.80, green: 0.45, blue: 0.40)
+        case .chessCom:   return Color(red: 0.40, green: 0.52, blue: 0.63)
         }
     }
 

@@ -207,7 +207,7 @@ struct PlayerProfile: Codable, Identifiable {
 // MARK: - App Settings
 struct AppSettings: Codable {
     var uiMode: UIMode = .study
-    var boardTheme: BoardTheme = .classic
+    var boardTheme: BoardTheme = .chessCom
     var pieceStyle: PieceStyle = .standard
     var colorThemeName: String = "default"
     var animationsEnabled: Bool = true
@@ -261,6 +261,10 @@ enum BoardTheme: String, Codable, CaseIterable {
     case midnight = "Midnight"
     case tournament = "Tournament"
     case coral = "Coral"
+    /// Cream + steel-blue combo, matching chess.com's default puzzle/play
+    /// board -- added at the user's direct request after they shared a
+    /// chess.com screenshot of the look they wanted.
+    case chessCom = "Chess.com Blue"
 }
 
 enum PieceStyle: String, Codable, CaseIterable {

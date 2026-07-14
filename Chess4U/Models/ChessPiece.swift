@@ -64,17 +64,23 @@ struct ChessPiece: Codable, Equatable, Identifiable {
         self.hasMoved = hasMoved
     }
 
+    /// Always the *solid* Unicode chess glyph, regardless of piece color.
+    /// The "white" Unicode chess symbols (♔♕♖♗♘♙) are hollow outline shapes
+    /// by design -- rendering them in white on a light square leaves almost no
+    /// visible ink, which is exactly the "white pieces are invisible" problem.
+    /// chess.com and Lichess piece sets always draw a solid silhouette for
+    /// both colors and rely on fill color + a contrasting outline stroke for
+    /// legibility (see ChessPieceGlyph in ChessBoardView.swift) -- so we do
+    /// the same here rather than switching glyph shape by color.
     var symbolForColor: String {
-        let base: String
         switch type {
-        case .king:   base = color == .white ? "♔" : "♚"
-        case .queen:  base = color == .white ? "♕" : "♛"
-        case .rook:   base = color == .white ? "♖" : "♜"
-        case .bishop: base = color == .white ? "♗" : "♝"
-        case .knight: base = color == .white ? "♘" : "♞"
-        case .pawn:   base = color == .white ? "♙" : "♟"
+        case .king:   return "♚"
+        case .queen:  return "♛"
+        case .rook:   return "♜"
+        case .bishop: return "♝"
+        case .knight: return "♞"
+        case .pawn:   return "♟"
         }
-        return base
     }
 
     var sfName: String {

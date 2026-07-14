@@ -180,7 +180,7 @@ struct DailyPuzzleView: View {
                     .foregroundColor(.secondary)
             }
 
-            Text("Come back tomorrow for a new challenge.")
+            Text("Come back tomorrow for a new daily puzzle.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -198,6 +198,19 @@ struct DailyPuzzleView: View {
                 .padding()
                 .background(Color.blue.opacity(0.08))
                 .cornerRadius(12)
+            }
+
+            // The daily puzzle is deliberately one-per-day (like chess.com/Lichess),
+            // but that shouldn't be a dead end -- give people who want to keep
+            // solving somewhere to go rather than just "come back tomorrow".
+            NavigationLink(destination: TrainingSessionView(trainingType: .tactics)) {
+                Label("Practice More Puzzles", systemImage: "puzzlepiece.extension.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(AppTheme.accent)
+                    .foregroundColor(.white)
+                    .cornerRadius(14)
             }
         }
         .padding()
