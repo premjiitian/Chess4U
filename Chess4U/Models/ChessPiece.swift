@@ -41,6 +41,22 @@ enum PieceType: String, Codable, CaseIterable, Equatable {
         case .pawn: return "p"
         }
     }
+
+    /// Board glyph size as a fraction of the square, matching a real set's
+    /// size hierarchy -- King tallest, then Queen, then Bishop, then
+    /// Rook/Knight at a similar mid-height, Pawn clearly the smallest.
+    /// Unicode chess symbols share one em-box per font, so this per-type
+    /// scale is the only lever available to make pieces read at their
+    /// correct relative size on the board.
+    var boardSizeFactor: CGFloat {
+        switch self {
+        case .king:            return 0.90
+        case .queen:            return 0.86
+        case .bishop:           return 0.80
+        case .rook, .knight:    return 0.74
+        case .pawn:             return 0.54
+        }
+    }
 }
 
 enum PieceColor: String, Codable, CaseIterable, Equatable {

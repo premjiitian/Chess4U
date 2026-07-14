@@ -81,7 +81,7 @@ struct ChessBoardView: View {
 
                 // Floating dragged piece
                 if let piece = draggedPiece {
-                    let fontSize = squareSize * (piece.type == .pawn ? 0.64 : 0.78)
+                    let fontSize = squareSize * piece.type.boardSizeFactor
                     ChessPieceGlyph(piece: piece, fontSize: fontSize, pieceStyle: vm.settings.pieceStyle)
                         .scaleEffect(1.25)  // Piece lifts up when dragged
                         .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 4)
@@ -358,7 +358,7 @@ struct ChessSquareView: View {
 
             // Piece — solid silhouette + contrasting outline, chess.com/Lichess style
             if let piece = piece {
-                let fontSize = squareSize * (piece.type == .pawn ? 0.64 : 0.78)
+                let fontSize = squareSize * piece.type.boardSizeFactor
                 ChessPieceGlyph(piece: piece, fontSize: fontSize, pieceStyle: pieceStyle)
             }
         }
