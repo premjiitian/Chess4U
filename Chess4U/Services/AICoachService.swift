@@ -55,16 +55,28 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
         }
 
         // 2. Pawn Structure
-        let myPawns = board.squares.compactMap { $0 }.filter { $0.type == .pawn && $0.color == (isWhiteTurn ? .white : .black) }
-        let myPawnFiles = myPawns.map { $0.square.file }
+        // NOTE: previously this chained `.compactMap { $0 }.filter { ... }` directly on
+        // `board.squares` ([[ChessPiece?]], a raw 2D array) and accessed a `.square`
+        // property that doesn't exist on ChessPiece. That's too ambiguous for the type
+        // checker (timed out with "unable to type-check this expression in reasonable
+        // time") and wouldn't have compiled at all once it did resolve. `allSquares(for:)`
+        // already exists on ChessBoard and returns properly-typed (Square, ChessPiece)
+        // pairs, which keeps every expression here simple and unambiguous.
+        let myColor: PieceColor = isWhiteTurn ? .white : .black
+        let oppColor = myColor.opposite
+        let myPieces = board.allSquares(for: myColor)
+        let oppPieces = board.allSquares(for: oppColor)
+
+        let myPawns = myPieces.filter { $0.1.type == .pawn }
+        let myPawnFiles = myPawns.map { $0.0.file }
         let doubledFiles = Dictionary(grouping: myPawnFiles, by: { $0 }).filter { $0.value.count > 1 }
         if !doubledFiles.isEmpty {
             imbalances.append("♟️ Pawn Structure: You have doubled pawns — a long-term weakness. Try to eliminate or trade them.")
         }
 
         // 3. Space
-        let myPieceSquares = board.squares.compactMap { $0 }.filter { $0.color == (isWhiteTurn ? .white : .black) && $0.type != .king }
-        let centerControl = myPieceSquares.filter { (3...4).contains($0.square.file) && (3...4).contains($0.square.rank) }.count
+        let myNonKingPieces = myPieces.filter { $0.1.type != .king }
+        let centerControl = myNonKingPieces.filter { (3...4).contains($0.0.file) && (3...4).contains($0.0.rank) }.count
         if centerControl >= 2 {
             imbalances.append("🏰 Space: You control the center. Use this space advantage to launch an attack.")
         } else if centerControl == 0 {
@@ -72,10 +84,10 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
         }
 
         // 4. Minor Piece Quality (Bishop vs Knight)
-        let myBishops = myPieceSquares.filter { $0.type == .bishop }.count
-        let myKnights = myPieceSquares.filter { $0.type == .knight }.count
-        let oppPieces = board.squares.compactMap { $0 }.filter { $0.color == (isWhiteTurn ? .black : .white) && $0.type != .king }
-        let oppBishops = oppPieces.filter { $0.type == .bishop }.count
+        let myBishops = myNonKingPieces.filter { $0.1.type == .bishop }.count
+        let myKnights = myNonKingPieces.filter { $0.1.type == .knight }.count
+        let oppNonKingPieces = oppPieces.filter { $0.1.type != .king }
+        let oppBishops = oppNonKingPieces.filter { $0.1.type == .bishop }.count
         if myBishops == 2 && oppBishops < 2 {
             imbalances.append("🔷 Minor Pieces: You have the bishop pair — powerful in open positions. Open the position!")
         } else if myKnights >= 2 && myBishops == 0 {
@@ -83,11 +95,10 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
         }
 
         // 5. Open Files & Key Squares
-        let myRooks = myPieceSquares.filter { $0.type == .rook }
+        let allPawnFiles = Set((myPieces + oppPieces).filter { $0.1.type == .pawn }.map { $0.0.file })
+        let myRooks = myNonKingPieces.filter { $0.1.type == .rook }
         for rook in myRooks {
-            let file = rook.square.file
-            let pawnsOnFile = board.squares.compactMap { $0 }.filter { $0.type == .pawn && $0.square.file == file }
-            if pawnsOnFile.isEmpty {
+            if !allPawnFiles.contains(rook.0.file) {
                 imbalances.append("🏹 Open Files: Your rook is on an open file. Double rooks or invade the 7th rank!")
                 break
             }
