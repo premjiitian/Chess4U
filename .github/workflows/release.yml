@@ -14,7 +14,13 @@ on:
 jobs:
   release:
     name: Build, Sign & Upload to TestFlight
-    runs-on: macos-15
+    # macos-15 has a confirmed, still-open GitHub bug where xcodebuild archive
+    # fails with "error:iOS 18.2 is not installed" for the generic "Any iOS
+    # Device" destination, even after explicitly downloading the iOS platform
+    # (see actions/runner-images#12758 / #12789). macos-14 does not have this
+    # bug -- build.yml already builds successfully on it -- so use that instead
+    # of continuing to work around a broken runner image.
+    runs-on: macos-14
 
     steps:
       - name: Checkout repository
@@ -63,17 +69,6 @@ jobs:
 
       - name: Select Xcode 16
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
-
-      - name: Ensure iOS platform/simulator runtime is installed
-        # Known macos-15 runner issue (actions/runner-images#13317): actool's asset
-        # catalog compilation cross-checks against installed Simulator runtimes even
-        # for a real-device archive build, and fails with "No simulator runtime
-        # version ... available to use with iphonesimulator SDK version" if the
-        # image's pre-installed runtimes don't line up with this Xcode version.
-        # Downloading the iOS platform explicitly resolves it.
-        run: |
-          xcodebuild -downloadPlatform iOS || echo "Download failed, continuing anyway..."
-          xcrun simctl list runtimes || true
 
       - name: Configure git identity for match
         run: |
