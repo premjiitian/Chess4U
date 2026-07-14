@@ -39,8 +39,8 @@
 		3F25183449D52EDDA1942746 /* FreePlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F085055D28F6269FE0DC565 /* FreePlayView.swift */; };
 		1F992EA2936B3D350F541E16 /* OpeningTrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB05A9E34FA40DA308FB083C /* OpeningTrainingView.swift */; };
 		A1B2C3D4E5F60718293A4B5C /* EndgameTrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A6978869504132 /* EndgameTrainingView.swift */; };
-		5F91746F4F654991BB200034 		A1B2C3D4E5F60001AAAA1004 /* DailyPuzzleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyPuzzleView.swift; sourceTree = "<group>"; };
-		/* ImportGamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportGamesView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60001AAAA1004 /* DailyPuzzleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyPuzzleView.swift; sourceTree = "<group>"; };
+		5F91746F4F654991BB200034 /* ImportGamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportGamesView.swift; sourceTree = "<group>"; };
 		CE2FF2728FBA54D9B5AEF251 /* GameAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E24D4596C6970D4E41255C1 /* GameAnalysisView.swift */; };
 		E563C62C5CC685AC0E44E1A0 /* LessonLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45D0C8FA2A88EC3BB8B137F7 /* LessonLibraryView.swift */; };
 		3532CF6BF9F06E2CE022FBCC /* LessonDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120A7991A12F6C78634F1A29 /* LessonDetailView.swift */; };
@@ -48,18 +48,18 @@
 		054F7DA6A2493B8B155C8C95 /* AchievementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BEF3F49234D6E024AB4C390 /* AchievementsView.swift */; };
 		2AF4C1199109185F6D471547 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FC1475E44B8CD0A8093222 /* SettingsView.swift */; };
 		4AEBC3F22E71F56EDDEEE9CB /* ChessEngineService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D41043741DB003D36751F9C9 /* ChessEngineService.swift */; };
-		23A67C5269B8413D99AC63E0 		A1B2C3D4E5F60001AAAA1001 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
-				A1B2C3D4E5F60001AAAA1002 /* SoundService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundService.swift; sourceTree = "<group>"; };
-				A1B2C3D4E5F60001AAAA1003 /* DailyPuzzleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyPuzzleService.swift; sourceTree = "<group>"; };
-				A1B2C3D4E5F60001AAAA1005 /* ChessClockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessClockService.swift; sourceTree = "<group>"; };
-		/* ExternalPlatformService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalPlatformService.swift; sourceTree = "<group>"; };
-		DD8690D2D36E40E7A963FAF9 		A1B2C3D4E5F60001BBBB1001 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1001 /* HapticService.swift */; };
-				A1B2C3D4E5F60001BBBB1002 /* SoundService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1002 /* SoundService.swift */; };
-				A1B2C3D4E5F60001BBBB1003 /* DailyPuzzleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1003 /* DailyPuzzleService.swift */; };
-				A1B2C3D4E5F60001BBBB1005 /* ChessClockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1005 /* ChessClockService.swift */; };
-		/* ExternalPlatformService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A67C5269B8413D99AC63E0 /* ExternalPlatformService.swift */; };
-		55ED4B38652B4789919B43C1 		A1B2C3D4E5F60001BBBB1004 /* DailyPuzzleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1004 /* DailyPuzzleView.swift */; };
-		/* ImportGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F91746F4F654991BB200034 /* ImportGamesView.swift */; };
+		A1B2C3D4E5F60001AAAA1001 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60001AAAA1002 /* SoundService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundService.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60001AAAA1003 /* DailyPuzzleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyPuzzleService.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60001AAAA1005 /* ChessClockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChessClockService.swift; sourceTree = "<group>"; };
+		23A67C5269B8413D99AC63E0 /* ExternalPlatformService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalPlatformService.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60001BBBB1001 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1001 /* HapticService.swift */; };
+		A1B2C3D4E5F60001BBBB1002 /* SoundService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1002 /* SoundService.swift */; };
+		A1B2C3D4E5F60001BBBB1003 /* DailyPuzzleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1003 /* DailyPuzzleService.swift */; };
+		A1B2C3D4E5F60001BBBB1005 /* ChessClockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1005 /* ChessClockService.swift */; };
+		DD8690D2D36E40E7A963FAF9 /* ExternalPlatformService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A67C5269B8413D99AC63E0 /* ExternalPlatformService.swift */; };
+		A1B2C3D4E5F60001BBBB1004 /* DailyPuzzleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AAAA1004 /* DailyPuzzleView.swift */; };
+		55ED4B38652B4789919B43C1 /* ImportGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F91746F4F654991BB200034 /* ImportGamesView.swift */; };
 		3ABC3DDEDF51B33892EF57E7 /* AICoachService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98EBD619A99A0601962A14BE /* AICoachService.swift */; };
 		51540DC5DAAB007271584037 /* AudioCoachService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD54EA245A235788335C38CA /* AudioCoachService.swift */; };
 		43B13FD416BFDB7E4AC20C95 /* AdaptiveDifficultyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDC734906830EC07A669C490 /* AdaptiveDifficultyService.swift */; };
@@ -550,7 +550,7 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXResourcesBuildPhase section *//* Begin PBXCopyFilesBuildPhase section */
+/* Begin PBXCopyFilesBuildPhase section */
 		WD100013AA100013BB100013 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -564,7 +564,7 @@
 		};
 /* End PBXCopyFilesBuildPhase section */
 
-
+/* Begin PBXResourcesBuildPhase section */
 		WD100012AA100012BB100012 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
