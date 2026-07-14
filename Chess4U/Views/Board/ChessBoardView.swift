@@ -69,7 +69,7 @@ struct ChessBoardView: View {
                         )
                         .position(x: CGFloat(file) * squareSize + squareSize / 2,
                                   y: CGFloat(rank) * squareSize + squareSize / 2)
-                        .onTapGesture {
+                        .accessibilityAction(.default) {
                             if interactive { handleTap(square: square) }
                         }
                     }
@@ -96,36 +96,49 @@ struct ChessBoardView: View {
                     .allowsHitTesting(false)
                 }
             }
-            // MARK: Drag Gesture
+            // MARK: Unified Tap + Drag Gesture
+            // A single gesture recognizer handles both tap-to-move and drag-and-drop.
+            // Using minimumDistance: 0 (rather than splitting tap/drag across two
+            // competing recognizers) means every touch — tap or drag — flows through
+            // the same state machine, so a simple tap can never get silently swallowed
+            // or "cancelled" by a sibling drag recognizer.
             .gesture(
                 interactive ?
-                DragGesture(minimumDistance: 4, coordinateSpace: .local)
+                DragGesture(minimumDistance: 0, coordinateSpace: .local)
                     .onChanged { value in
                         dragLocation = value.location
-                        let sq = squareAt(location: value.startLocation, squareSize: squareSize)
+                        let distance = hypot(value.translation.width, value.translation.height)
+                        let startSq = squareAt(location: value.startLocation, squareSize: squareSize)
 
-                        if draggedFrom == nil {
-                            // Start drag — select the piece
-                            if let piece = vm.game.board[sq], piece.color == vm.game.board.activeColor {
-                                draggedFrom = sq
-                                draggedPiece = piece
-                                vm.selectedSquare = sq
-                                vm.legalMoveSquares = ChessEngineService.shared
-                                    .legalMoves(for: piece, at: sq, on: vm.game.board)
-                                    .map { $0.to }
+                        // Only "pick up" the piece visually once the finger has moved far
+                        // enough to be a genuine drag — this keeps plain taps from ever
+                        // triggering drag state.
+                        if draggedFrom == nil, distance > squareSize * 0.15,
+                           let piece = vm.game.board[startSq], piece.color == vm.game.board.activeColor {
+                            draggedFrom = startSq
+                            draggedPiece = piece
+                            if vm.selectedSquare != startSq {
+                                vm.selectSquare(startSq)
                                 HapticService.shared.pieceSelected()
                             }
                         }
                     }
                     .onEnded { value in
-                        let targetSq = squareAt(location: value.location, squareSize: squareSize)
-                        if let fromSq = draggedFrom, targetSq != fromSq {
-                            handleTap(square: targetSq)
-                        } else {
-                            // Cancelled drag — deselect
-                            vm.selectedSquare = nil
-                            vm.legalMoveSquares = []
+                        let distance = hypot(value.translation.width, value.translation.height)
+                        let startSq = squareAt(location: value.startLocation, squareSize: squareSize)
+                        let endSq = squareAt(location: value.location, squareSize: squareSize)
+
+                        if distance <= squareSize * 0.15 {
+                            // A plain tap: select the piece, or move if a destination
+                            // square was already selected.
+                            handleTap(square: startSq)
+                        } else if let fromSq = draggedFrom, endSq != fromSq {
+                            // A genuine drag that ended on a different square.
+                            handleTap(square: endSq)
                         }
+                        // Dropped back on the same square after a real drag: leave the
+                        // current selection as-is (matches chess.com behavior).
+
                         draggedFrom = nil
                         draggedPiece = nil
                         dragOffset = .zero

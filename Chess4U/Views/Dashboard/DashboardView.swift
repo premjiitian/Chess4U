@@ -55,7 +55,7 @@ struct DashboardView: View {
                                 Text(profile.band.icon)
                                 Text(profile.name)
                                     .font(.subheadline)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(AppTheme.accent)
                             }
                         }
                     }
@@ -87,7 +87,7 @@ struct DashboardView: View {
                 }
                 Text(vm.motivationalMessage)
                     .font(.caption)
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppTheme.accent)
                     .padding(.top, 2)
             }
             Spacer()
@@ -99,12 +99,10 @@ struct DashboardView: View {
                     .foregroundColor(.secondary)
             }
             .padding(12)
-            .background(Color.orange.opacity(0.1))
+            .background(AppTheme.highlightLight)
             .cornerRadius(12)
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+        .chessCard()
     }
 
     var greetingText: String {
@@ -123,7 +121,7 @@ struct DashboardView: View {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .fill(puzzleService.isCompleted ? Color.green : Color.orange)
+                        .fill(puzzleService.isCompleted ? AppTheme.success : AppTheme.highlight)
                         .frame(width: 56, height: 56)
                     Image(systemName: puzzleService.isCompleted ? "checkmark" : "puzzlepiece.fill")
                         .font(.title2)
@@ -141,7 +139,7 @@ struct DashboardView: View {
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Color.green)
+                                .background(AppTheme.success)
                                 .cornerRadius(6)
                         }
                     }
@@ -152,7 +150,7 @@ struct DashboardView: View {
                     }
                     HStack(spacing: 4) {
                         Image(systemName: "flame.fill")
-                            .foregroundColor(.orange)
+                            .foregroundColor(AppTheme.highlight)
                             .font(.caption)
                         Text("Streak: \(puzzleService.streak) days")
                             .font(.caption)
@@ -168,15 +166,15 @@ struct DashboardView: View {
             .background(
                 LinearGradient(
                     colors: puzzleService.isCompleted
-                        ? [Color.green.opacity(0.08), Color.green.opacity(0.04)]
-                        : [Color.orange.opacity(0.12), Color.yellow.opacity(0.06)],
+                        ? [AppTheme.success.opacity(0.08), AppTheme.success.opacity(0.04)]
+                        : [AppTheme.highlight.opacity(0.12), AppTheme.highlight.opacity(0.06)],
                     startPoint: .leading, endPoint: .trailing
                 )
             )
             .cornerRadius(16)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(puzzleService.isCompleted ? Color.green.opacity(0.3) : Color.orange.opacity(0.3), lineWidth: 1)
+                    .stroke(puzzleService.isCompleted ? AppTheme.success.opacity(0.3) : AppTheme.highlight.opacity(0.3), lineWidth: 1)
             )
         }
     }
@@ -185,7 +183,7 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppTheme.accent)
                 Text("Skill Progress")
                     .font(.headline)
                 Spacer()
@@ -199,9 +197,7 @@ struct DashboardView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+        .chessCard()
     }
 
     var recommendedTrainingCard: some View {
@@ -227,7 +223,7 @@ struct DashboardView: View {
                         .font(.title)
                         .foregroundColor(.white)
                         .frame(width: 56, height: 56)
-                        .background(Color.blue)
+                        .background(AppTheme.accent)
                         .cornerRadius(14)
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -240,30 +236,28 @@ struct DashboardView: View {
                     Spacer()
                     Image(systemName: "arrow.right.circle.fill")
                         .font(.title2)
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppTheme.accent)
                 }
                 .padding()
-                .background(Color.blue.opacity(0.08))
+                .background(AppTheme.accentLight)
                 .cornerRadius(14)
             }
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+        .chessCard()
     }
 
     var weeklyPlanSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "calendar")
-                    .foregroundColor(.green)
+                    .foregroundColor(AppTheme.success)
                 Text("This Week's Plan")
                     .font(.headline)
                 Spacer()
                 NavigationLink(destination: WeeklyPlanView()) {
                     Text("See All")
                         .font(.caption)
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppTheme.accent)
                 }
             }
 
@@ -275,9 +269,7 @@ struct DashboardView: View {
                 }
             }
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+        .chessCard()
     }
 
     func weaknessInsightCard(profile: PlayerProfile) -> some View {
@@ -340,9 +332,7 @@ struct DashboardView: View {
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.2)))
             }
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+        .chessCard()
     }
 
     var achievementsSection: some View {
@@ -356,7 +346,7 @@ struct DashboardView: View {
                 NavigationLink(destination: AchievementsView()) {
                     Text("See All")
                         .font(.caption)
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppTheme.accent)
                 }
             }
 
@@ -366,9 +356,7 @@ struct DashboardView: View {
                 }
             }
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+        .chessCard()
     }
 }
 
@@ -398,7 +386,7 @@ struct DayPlanCard: View {
                     Text(type.rawValue)
                         .font(.caption2)
                 }
-                .foregroundColor(.blue)
+                .foregroundColor(AppTheme.accent)
             }
 
             Text("\(plan.estimatedMinutes) min")
