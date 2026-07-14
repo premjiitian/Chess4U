@@ -42,6 +42,8 @@ struct TrainingHubView: View {
             return .openings
         case .middlegameTactics:
             return .middlegame
+        case .personalMistake, .personalBookmark:
+            return .blunderReduction
         }
     }
 

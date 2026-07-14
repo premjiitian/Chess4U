@@ -95,7 +95,7 @@ struct GameAnalysisView: View {
                 // Bookmark the position currently on the board -- not just
                 // the auto-flagged mistakes -- as a puzzle to practice later.
                 Button {
-                    withAnimation { vm.saveCurrentPositionAsPuzzle() }
+                    withAnimation { _ = vm.saveCurrentPositionAsPuzzle() }
                 } label: {
                     Label("Save This Position as a Puzzle", systemImage: "star.fill")
                         .font(.subheadline)
