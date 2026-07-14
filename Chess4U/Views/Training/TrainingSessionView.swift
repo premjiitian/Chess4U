@@ -160,14 +160,28 @@ struct TrainingSessionView: View {
                     }
 
                     Button {
-                        // Show solution
-                        vm.puzzleState = .showingSolution
+                        vm.showSolution()
                     } label: {
                         Label("Solution", systemImage: "eye")
                             .frame(maxWidth: .infinity)
                             .padding(10)
                             .background(Color.purple.opacity(0.15))
                             .foregroundColor(.purple)
+                            .cornerRadius(10)
+                    }
+                    .disabled(vm.puzzleState == .showingSolution)
+
+                    // Always available -- lets the player move on whether they
+                    // solved it, gave up and viewed the solution, or just want
+                    // to skip. Not gated behind the auto-advance timer.
+                    Button {
+                        vm.advanceToNextPuzzle()
+                    } label: {
+                        Label("Next", systemImage: "arrow.right.circle.fill")
+                            .frame(maxWidth: .infinity)
+                            .padding(10)
+                            .background(AppTheme.accentLight)
+                            .foregroundColor(AppTheme.accent)
                             .cornerRadius(10)
                     }
                 }

@@ -404,32 +404,35 @@ struct ChessSquareView: View {
 // MARK: - Chess Piece Glyph
 /// Renders a chess piece as a solid, outlined silhouette -- the same approach
 /// chess.com and Lichess piece sets use (a filled shape + a contrasting
-/// border) rather than relying on a font's built-in glyph shading. This is
-/// what actually fixes "white pieces are invisible on light squares": the
-/// previous rendering switched between Unicode's hollow "white" glyphs
-/// (♔♕♖♗♘♙) and solid "black" glyphs (♚♛♜♝♞♟), and a hollow outline filled
-/// white on a light square has almost no visible ink no matter what color
-/// you apply. `ChessPiece.symbolForColor` now always returns the solid
-/// glyph variant; this view is what turns that single shape into a properly
-/// legible white-or-black piece by filling it and stroking a contrasting
-/// outline around it (SwiftUI's Text has no native stroke, so the outline is
-/// faked with 8 offset copies of the glyph in the outline color beneath the
-/// fill, which is the standard trick for "outlined text" in SwiftUI).
+/// border) rather than relying on a font's built-in glyph shading.
+/// `ChessPiece.symbolForColor` always returns the solid glyph variant
+/// regardless of color; this view turns that single shape into a properly
+/// legible white-or-black piece with a same-shape, larger duplicate glyph in
+/// the outline color placed directly behind the normal-size fill glyph (see
+/// `outlineScale`) -- two flat layers, no blur, no offset copies, so there's
+/// no room for anti-aliasing at small (pawn) sizes to blend the two colors
+/// toward each other.
 struct ChessPieceGlyph: View {
     let piece: ChessPiece
     let fontSize: CGFloat
     /// Which of the four named piece sets (Settings > Piece Style) to render.
     /// Since the app draws pieces from styled Unicode glyphs rather than
-    /// bundled artwork, each style is differentiated by palette, outline
-    /// weight, and shadow -- not a different glyph shape.
+    /// bundled artwork, each style is differentiated by palette and outline
+    /// weight, not a different glyph shape.
     var pieceStyle: PieceStyle = .standard
 
+    /// Deliberately at the extremes (pure white / pure black) for .standard
+    /// and .neo -- previous, slightly-off-white/off-black values (0.99/0.08)
+    /// left enough room for anti-aliasing at small (pawn) sizes to blend the
+    /// fill toward the dark outline, which is what made white and black
+    /// pawns hard to tell apart. Going fully to the ends of the scale removes
+    /// that ambiguity outright.
     private var fillColor: Color {
         switch pieceStyle {
         case .standard, .neo:
-            return piece.color == .white ? Color(white: 0.99) : Color(white: 0.08)
+            return piece.color == .white ? .white : .black
         case .alpha:
-            return piece.color == .white ? Color(white: 0.97) : Color(white: 0.10)
+            return piece.color == .white ? Color(white: 0.96) : Color(white: 0.06)
         case .merida:
             // Warm wood-toned set: ivory vs. walnut, like a traditional wooden board.
             return piece.color == .white
@@ -440,12 +443,10 @@ struct ChessPieceGlyph: View {
 
     private var strokeColor: Color {
         switch pieceStyle {
-        case .standard:
-            return piece.color == .white ? Color(white: 0.05) : Color(white: 0.96)
-        case .neo:
-            return piece.color == .white ? Color(red: 0.04, green: 0.09, blue: 0.18) : Color(white: 0.93)
+        case .standard, .neo:
+            return piece.color == .white ? .black : .white
         case .alpha:
-            return piece.color == .white ? Color.black.opacity(0.8) : Color.white.opacity(0.8)
+            return piece.color == .white ? Color.black.opacity(0.85) : Color.white.opacity(0.85)
         case .merida:
             return piece.color == .white
                 ? Color(red: 0.36, green: 0.22, blue: 0.10)
@@ -453,49 +454,33 @@ struct ChessPieceGlyph: View {
         }
     }
 
-    private var strokeWidth: CGFloat {
-        let factor: CGFloat
+    /// How much larger the outline layer is drawn behind the fill layer, as a
+    /// fraction of fontSize -- e.g. 0.12 means the outline glyph is rendered
+    /// 12% bigger, so a consistent ring of the stroke color peeks out on all
+    /// sides once the same-shape fill glyph is centered on top of it. This is
+    /// a simpler, more robust "outlined text" technique than stacking several
+    /// offset copies with a blurred shadow: two layers, no blur, no loop, so
+    /// there's no room for small-glyph blending artifacts to muddy the color.
+    private var outlineScale: CGFloat {
         switch pieceStyle {
-        case .standard: factor = 0.045   // balanced outline
-        case .neo:       factor = 0.065  // bolder, modern flat look
-        case .alpha:      factor = 0.028 // thin, elegant outline
-        case .merida:     factor = 0.05  // traditional wooden-set weight
+        case .standard: return 1.14
+        case .neo:       return 1.20   // bolder, modern flat look
+        case .alpha:      return 1.08  // thin, elegant outline
+        case .merida:     return 1.16  // traditional wooden-set weight
         }
-        return max(1, fontSize * factor)
-    }
-
-    private var strokeOffsets: [CGPoint] {
-        let w = strokeWidth
-        return [
-            CGPoint(x: -w, y: -w), CGPoint(x: 0, y: -w), CGPoint(x: w, y: -w),
-            CGPoint(x: -w, y: 0),                          CGPoint(x: w, y: 0),
-            CGPoint(x: -w, y: w),  CGPoint(x: 0, y: w),  CGPoint(x: w, y: w),
-        ]
     }
 
     var body: some View {
         ZStack {
-            // Soft drop shadow for a touch of depth (subtle, not a legibility crutch)
+            Text(piece.symbolForColor)
+                .font(.system(size: fontSize * outlineScale))
+                .foregroundColor(strokeColor)
+
             Text(piece.symbolForColor)
                 .font(.system(size: fontSize))
-                .foregroundColor(.black.opacity(0.22))
-                .offset(x: 0, y: fontSize * 0.03)
-                .blur(radius: fontSize * 0.02)
-
-            // Faux outline: same glyph, offset in 8 directions, in the stroke color
-            ForEach(0..<strokeOffsets.count, id: \.self) { i in
-                Text(piece.symbolForColor)
-                    .font(.system(size: fontSize))
-                    .foregroundColor(strokeColor)
-                    .offset(x: strokeOffsets[i].x, y: strokeOffsets[i].y)
-            }
-
-            // Solid fill on top
-            Text(piece.symbolForColor)
-                .font(.system(size: fontSize))
-                .minimumScaleFactor(0.5)
                 .foregroundColor(fillColor)
         }
+        .shadow(color: .black.opacity(0.25), radius: fontSize * 0.03, x: 0, y: fontSize * 0.02)
     }
 }
 

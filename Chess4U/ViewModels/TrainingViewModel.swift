@@ -24,6 +24,9 @@ class TrainingViewModel: ObservableObject {
     private var puzzleStartTime: Date = Date()
     private var cancellables = Set<AnyCancellable>()
     private var solvedPuzzleIndices: Set<Int> = []
+    /// Guards against double-advancing when the player taps "Next" manually
+    /// during the 2s auto-advance window after solving a puzzle.
+    private var isAdvancing = false
     var profile: PlayerProfile?
 
     init(profile: PlayerProfile? = nil) {
@@ -98,6 +101,7 @@ class TrainingViewModel: ObservableObject {
 
     // MARK: - Load Puzzle
     func loadPuzzle(_ puzzle: ChessPuzzle, index: Int? = nil) {
+        isAdvancing = false
         currentPuzzle = puzzle
         solutionMoves = puzzle.solution
         currentSolutionIndex = 0
@@ -223,7 +227,14 @@ class TrainingViewModel: ObservableObject {
         }
     }
 
-    private func advanceToNextPuzzle() {
+    /// Moves on to the next puzzle in the session (or completes it if this
+    /// was the last one). Called automatically 2s after solving a puzzle,
+    /// and directly by the always-visible "Next Puzzle" button so the player
+    /// is never stuck waiting on a silent timer or dead-ended after viewing
+    /// a solution.
+    func advanceToNextPuzzle() {
+        guard !isAdvancing else { return }
+        isAdvancing = true
         guard var session = session else { return }
 
         let allPuzzles = session.warmupPuzzles + session.mainPuzzles
@@ -258,6 +269,39 @@ class TrainingViewModel: ObservableObject {
             self.session = session
         }
         isSessionComplete = true
+    }
+
+    /// Actually reveals the solution: plays the remaining scripted move(s) on
+    /// the board and describes them in the status banner, instead of just
+    /// flipping to a "showingSolution" state with no visible change (which is
+    /// what happened before -- tapping "Solution" did nothing you could see).
+    func showSolution() {
+        guard currentSolutionIndex < solutionMoves.count else { return }
+        puzzleState = .showingSolution
+
+        let remaining = Array(solutionMoves[currentSolutionIndex...])
+        coachComment = "Solution: " + describeMove(remaining.first ?? "", board: boardVM.game.board)
+
+        if var session = session {
+            session.puzzlesAttempted += 1
+            self.session = session
+        }
+
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            for algebraic in remaining {
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                let board = self.boardVM.game.board
+                if let move = self.parseMove(algebraic, board: board) {
+                    self.boardVM.executeMove(move)
+                }
+            }
+        }
+    }
+
+    private func describeMove(_ algebraic: String, board: ChessBoard) -> String {
+        guard let move = parseMove(algebraic, board: board) else { return algebraic }
+        return "\(move.piece.type.rawValue) \(move.from.algebraic) \u{2192} \(move.to.algebraic)"
     }
 
     func requestHint() {
