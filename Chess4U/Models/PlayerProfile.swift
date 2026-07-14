@@ -114,6 +114,15 @@ struct OpeningRecord: Codable, Equatable {
 struct PlayerProfile: Codable, Identifiable {
     var id: UUID = UUID()
     var name: String
+    /// Optional -- lets the player identify their profile with an email
+    /// address without any real authentication (no account/server is
+    /// involved; this is purely a local label).
+    var email: String? = nil
+    /// If this profile was created via "Connect chess.com/Lichess" during
+    /// onboarding, the platform + username used, so the app can offer to
+    /// keep syncing without asking again.
+    var connectedPlatform: String? = nil
+    var connectedUsername: String? = nil
     var elo: Int
     var preferredTimeControl: TimeControl
     var playerType: PlayerType

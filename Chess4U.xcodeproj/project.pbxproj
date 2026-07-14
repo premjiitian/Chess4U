@@ -29,6 +29,7 @@
 		BF4F93DE09253E18B8AF6143 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDDCA7C71B2FC32C3D2E33D2 /* MainTabView.swift */; };
 		7AE902B3D95518F37DDFD9A7 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A7792EA3C6A441E319B8AE3 /* OnboardingView.swift */; };
 		77583D49194F72B37C1381BE /* PlayerAssessmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC4D3B2B1B263A53718BD69C /* PlayerAssessmentView.swift */; };
+		CA8F4365A60097501F31BB61 /* ConnectPlatformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B74D8A6889F6C8EDEA4C4F64 /* ConnectPlatformView.swift */; };
 		ACD0765BF25228DCAC80C746 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 003E83886E57C5B1F91A8EFD /* DashboardView.swift */; };
 		208BC0A773B66F602C716655 /* SkillRadarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A7CBD6C62A86AEA2CA0DED /* SkillRadarView.swift */; };
 		AC9150431EFCCCED9CACB5A7 /* WeeklyPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0EAD4EF0CF4C5329FB88B46 /* WeeklyPlanView.swift */; };
@@ -110,6 +111,7 @@
 		DDDCA7C71B2FC32C3D2E33D2 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		6A7792EA3C6A441E319B8AE3 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		FC4D3B2B1B263A53718BD69C /* PlayerAssessmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerAssessmentView.swift; sourceTree = "<group>"; };
+		B74D8A6889F6C8EDEA4C4F64 /* ConnectPlatformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectPlatformView.swift; sourceTree = "<group>"; };
 		003E83886E57C5B1F91A8EFD /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		63A7CBD6C62A86AEA2CA0DED /* SkillRadarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillRadarView.swift; sourceTree = "<group>"; };
 		B0EAD4EF0CF4C5329FB88B46 /* WeeklyPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyPlanView.swift; sourceTree = "<group>"; };
@@ -320,6 +322,7 @@
 			children = (
 				6A7792EA3C6A441E319B8AE3 /* OnboardingView.swift */,
 				FC4D3B2B1B263A53718BD69C /* PlayerAssessmentView.swift */,
+				B74D8A6889F6C8EDEA4C4F64 /* ConnectPlatformView.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -624,6 +627,7 @@
 				BF4F93DE09253E18B8AF6143 /* MainTabView.swift in Sources */,
 				7AE902B3D95518F37DDFD9A7 /* OnboardingView.swift in Sources */,
 				77583D49194F72B37C1381BE /* PlayerAssessmentView.swift in Sources */,
+				CA8F4365A60097501F31BB61 /* ConnectPlatformView.swift in Sources */,
 				ACD0765BF25228DCAC80C746 /* DashboardView.swift in Sources */,
 				208BC0A773B66F602C716655 /* SkillRadarView.swift in Sources */,
 				AC9150431EFCCCED9CACB5A7 /* WeeklyPlanView.swift in Sources */,

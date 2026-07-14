@@ -93,13 +93,27 @@ struct OnboardingView: View {
                         NavigationLink(destination: PlayerAssessmentView()) {
                             HStack {
                                 Image(systemName: "checkmark.circle.fill")
-                                Text("Start My Training Journey")
+                                Text("Create My Profile")
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(LinearGradient(colors: [.blue, .purple],
                                                        startPoint: .leading, endPoint: .trailing))
                             .foregroundColor(.white)
+                            .cornerRadius(16)
+                            .font(.headline)
+                        }
+
+                        NavigationLink(destination: ConnectPlatformView()) {
+                            HStack {
+                                Image(systemName: "link.circle.fill")
+                                Text("Connect chess.com or Lichess")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color(.systemBackground))
+                            .foregroundColor(AppTheme.accent)
+                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(AppTheme.accent, lineWidth: 1.5))
                             .cornerRadius(16)
                             .font(.headline)
                         }

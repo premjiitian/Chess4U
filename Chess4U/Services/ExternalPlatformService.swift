@@ -180,6 +180,74 @@ final class ExternalPlatformService: ObservableObject {
         return games
     }
 
+    // MARK: - Quick Profile Lookup (onboarding "Connect" flow)
+    /// Looks up a public chess.com/Lichess account by username and returns a
+    /// best-effort current rating + display name, using only public,
+    /// unauthenticated endpoints. Used by onboarding's "Connect chess.com or
+    /// Lichess" quick-start path so a new profile can start from the
+    /// player's real rating instead of a guess.
+    struct QuickProfile {
+        let username: String
+        let displayName: String?
+        let rating: Int?
+    }
+
+    func fetchQuickProfile(platform: ExternalGame.Platform, username: String) async throws -> QuickProfile {
+        switch platform {
+        case .chesscom:
+            return try await fetchChesscomQuickProfile(username: username)
+        case .lichess:
+            return try await fetchLichessQuickProfile(username: username)
+        }
+    }
+
+    private func fetchChesscomQuickProfile(username: String) async throws -> QuickProfile {
+        let clean = username.lowercased()
+        // Public profile endpoint (name, no auth needed).
+        struct Profile: Decodable { let name: String? }
+        var displayName: String? = nil
+        if let profileURL = URL(string: "https://api.chess.com/pub/player/\(clean)") {
+            if let (data, _) = try? await URLSession.shared.data(from: profileURL),
+               let profile = try? JSONDecoder().decode(Profile.self, from: data) {
+                displayName = profile.name
+            }
+        }
+        // Stats endpoint has per-format ratings; use rapid, falling back to blitz/bullet.
+        struct Stats: Decodable {
+            let chess_rapid: Rating?
+            let chess_blitz: Rating?
+            let chess_bullet: Rating?
+            struct Rating: Decodable { let last: Last?; struct Last: Decodable { let rating: Int } }
+        }
+        guard let statsURL = URL(string: "https://api.chess.com/pub/player/\(clean)/stats") else {
+            return QuickProfile(username: username, displayName: displayName, rating: nil)
+        }
+        let (data, _) = try await URLSession.shared.data(from: statsURL)
+        let stats = try JSONDecoder().decode(Stats.self, from: data)
+        let rating = stats.chess_rapid?.last?.rating ?? stats.chess_blitz?.last?.rating ?? stats.chess_bullet?.last?.rating
+        return QuickProfile(username: username, displayName: displayName, rating: rating)
+    }
+
+    private func fetchLichessQuickProfile(username: String) async throws -> QuickProfile {
+        guard let url = URL(string: "https://lichess.org/api/user/\(username.lowercased())") else {
+            throw URLError(.badURL)
+        }
+        struct LichessUser: Decodable {
+            let username: String?
+            let perfs: Perfs?
+            struct Perfs: Decodable {
+                let rapid: Perf?
+                let blitz: Perf?
+                let bullet: Perf?
+                struct Perf: Decodable { let rating: Int? }
+            }
+        }
+        let (data, _) = try await URLSession.shared.data(from: url)
+        let user = try JSONDecoder().decode(LichessUser.self, from: data)
+        let rating = user.perfs?.rapid?.rating ?? user.perfs?.blitz?.rating ?? user.perfs?.bullet?.rating
+        return QuickProfile(username: username, displayName: user.username, rating: rating)
+    }
+
     // MARK: - Convenience
     /// Fetches every game played on `platform` in the last `days` days --
     /// used by the "Sync Last 30 Days" puzzle-import flow.

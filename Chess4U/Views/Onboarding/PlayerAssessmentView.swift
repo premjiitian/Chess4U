@@ -5,6 +5,7 @@ struct PlayerAssessmentView: View {
     @Environment(\.presentationMode) var presentationMode
 
     @State private var playerName: String = ""
+    @State private var playerEmail: String = ""
     @State private var eloString: String = "1200"
     @State private var timeControl: TimeControl = .rapid
     @State private var playerType: PlayerType = .casual
@@ -143,6 +144,16 @@ struct PlayerAssessmentView: View {
                 TextField(isKidsProfile ? "Your nickname" : "Your name", text: $playerName)
                     .textFieldStyle(.roundedBorder)
                     .font(.title3)
+            }
+
+            if !isKidsProfile {
+                AssessmentCard(title: "Email (optional)", icon: "envelope") {
+                    TextField("you@example.com", text: $playerEmail)
+                        .textFieldStyle(.roundedBorder)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.emailAddress)
+                }
             }
 
             AssessmentCard(title: "Current Elo Rating", icon: "speedometer") {
@@ -326,6 +337,7 @@ struct PlayerAssessmentView: View {
 
         var profile = PlayerProfile(
             name: playerName.isEmpty ? "Player" : playerName,
+            email: playerEmail.trimmingCharacters(in: .whitespaces).isEmpty ? nil : playerEmail.trimmingCharacters(in: .whitespaces),
             elo: elo,
             preferredTimeControl: timeControl,
             playerType: playerType,
