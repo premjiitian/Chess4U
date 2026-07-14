@@ -6,6 +6,16 @@ struct SettingsView: View {
     @State private var chesscomUsername: String = ""
     @State private var lichessUsername: String = ""
 
+    /// Reads the *real* installed version/build from the app bundle instead
+    /// of a hardcoded string -- Settings previously always showed "1.0.0"
+    /// no matter which TestFlight build was actually running, making it
+    /// impossible to confirm whether a fix had actually been installed.
+    private var appVersionString: String {
+        let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "\(shortVersion) (\(build))"
+    }
+
     var body: some View {
         Form {
             // UI Mode
@@ -162,7 +172,7 @@ struct SettingsView: View {
                 HStack {
                     Text("Version")
                     Spacer()
-                    Text("1.0.0")
+                    Text(appVersionString)
                         .foregroundColor(.secondary)
                 }
                 HStack {
