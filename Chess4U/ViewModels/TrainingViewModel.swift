@@ -153,26 +153,10 @@ class TrainingViewModel: ObservableObject {
     }
 
     private func parseMove(_ algebraic: String, board: ChessBoard) -> ChessMove? {
-        guard algebraic.count >= 4 else { return nil }
-        let fromStr = String(algebraic.prefix(2))
-        let toStr = String(algebraic.dropFirst(2).prefix(2))
-        guard let from = Square(algebraic: fromStr),
-              let to = Square(algebraic: toStr),
-              let piece = board[from] else { return nil }
-
-        let promotion: PieceType? = algebraic.count == 5 ? {
-            switch algebraic.last {
-            case "q": return .queen
-            case "r": return .rook
-            case "b": return .bishop
-            case "n": return .knight
-            default: return nil
-            }
-        }() : nil
-
-        let engine = ChessEngineService.shared
-        let legalMoves = engine.legalMoves(for: piece, at: from, on: board)
-        return legalMoves.first { $0.to == to && ($0.promotionPiece == promotion || promotion == nil) }
+        // Delegates to the shared UCI parser on ChessEngineService (also used
+        // by the cloud Stockfish integration) instead of duplicating the
+        // from/to/promotion-matching logic here.
+        ChessEngineService.shared.move(fromUCI: algebraic, board: board)
     }
 
     private func handlePuzzleSolved() {

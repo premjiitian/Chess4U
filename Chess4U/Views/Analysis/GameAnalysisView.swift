@@ -145,6 +145,10 @@ struct GameAnalysisView: View {
                 .font(.body)
                 .foregroundColor(.secondary)
 
+            Label(analysis.engineSource.label, systemImage: analysis.engineSource == .localEngine ? "wifi.slash" : "bolt.fill")
+                .font(.caption)
+                .foregroundColor(analysis.engineSource == .localEngine ? .orange : .green)
+
             HStack {
                 accuracyBadge("Accuracy", "\(Int(analysis.accuracy))%",
                                analysis.accuracy > 75 ? .green : analysis.accuracy > 50 ? .orange : .red)

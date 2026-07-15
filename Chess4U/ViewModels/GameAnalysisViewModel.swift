@@ -38,15 +38,13 @@ class GameAnalysisViewModel: ObservableObject {
         )
 
         isAnalyzing = true
-        let aiCoach = self.aiCoach  // capture before leaving MainActor context
+        let aiCoach = self.aiCoach
         aiCoach.uiMode = self.uiMode
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let result = aiCoach.analyzeGame(game, profile: effectiveProfile)
-            DispatchQueue.main.async {
-                self?.analysis = result
-                self?.isAnalyzing = false
-            }
+        Task { [weak self] in
+            let result = await aiCoach.analyzeGameCloud(game, profile: effectiveProfile)
+            self?.analysis = result
+            self?.isAnalyzing = false
         }
     }
 

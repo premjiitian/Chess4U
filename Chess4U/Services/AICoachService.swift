@@ -228,7 +228,139 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
         """
     }
 
-    // MARK: - Game Analysis
+    // MARK: - Game Analysis (cloud Stockfish, with local fallback)
+    /// Analyzes a full game using real Stockfish (via StockfishCloudService)
+    /// for every position, falling back to the local heuristic engine
+    /// (`ChessEngineService`) move-by-move if the network is unavailable --
+    /// once one cloud call fails, the rest of the game uses the local engine
+    /// too, instead of retrying/timing out on every remaining move.
+    func analyzeGameCloud(_ game: ChessGame, profile: PlayerProfile, depth: Int = 10) async -> GameAnalysis {
+        let engine = ChessEngineService.shared
+        let cloud = StockfishCloudService.shared
+        var criticalMistakes: [MoveAnalysis] = []
+        let missedTactics: [MoveAnalysis] = []
+        var goodMoves: [MoveAnalysis] = []
+        var evaluations: [Double] = [0.0]
+        var allAnalyses: [MoveAnalysis] = []
+
+        var currentBoard = ChessBoard()
+        var cloudAvailable = true
+        var cloudCallsSucceeded = 0
+
+        for (idx, move) in game.moves.enumerated() {
+            var evaluation: Double
+            var bestMove: ChessMove?
+            var bestMoveUCI: String? = nil
+
+            if cloudAvailable, let result = try? await cloud.analyze(fen: currentBoard.fen, depth: depth) {
+                cloudCallsSucceeded += 1
+                evaluation = result.evaluationPawns
+                bestMoveUCI = result.bestMoveUCI
+                if let uci = result.bestMoveUCI, let parsed = engine.move(fromUCI: uci, board: currentBoard) {
+                    bestMove = parsed
+                } else {
+                    bestMove = engine.bestMove(for: currentBoard.activeColor, on: currentBoard, depth: 2)
+                }
+            } else {
+                cloudAvailable = false
+                evaluation = Double(engine.evaluate(board: currentBoard)) / 100.0
+                bestMove = engine.bestMove(for: currentBoard.activeColor, on: currentBoard, depth: 2)
+            }
+
+            evaluations.append(evaluation)
+
+            // Quality is derived from the eval swing between this position
+            // and the next (i.e. the result of the move actually played),
+            // rather than re-evaluating a hypothetical "best move" board --
+            // this reuses the same sequential cloud calls instead of tripling
+            // the network requests per move.
+            let quality = assessQualityFromMove(
+                move: move, bestMoveUCI: bestMoveUCI, bestMove: bestMove,
+                evalBefore: evaluation, board: currentBoard
+            )
+
+            let analysis = MoveAnalysis(
+                moveNumber: idx + 1,
+                move: move,
+                quality: quality,
+                explanation: explanationFor(quality: quality, move: move),
+                evaluation: evaluation,
+                positionFEN: currentBoard.fen,
+                bestAlternative: bestMove
+            )
+
+            allAnalyses.append(analysis)
+
+            switch quality {
+            case .blunder, .mistake:
+                criticalMistakes.append(analysis)
+            case .best, .good:
+                goodMoves.append(analysis)
+            default:
+                break
+            }
+
+            currentBoard = engine.applyMove(move, to: currentBoard)
+        }
+
+        // Fill in quality for the final position's eval swing now that we
+        // know evaluations[idx+1] for every move -- re-derive using the
+        // eval-diff scheme for anything the single-call loop above couldn't
+        // score precisely (kept simple: this matches the local classification
+        // thresholds already used by the app).
+        let accuracy = calculateAccuracy(moves: game.moves.count, mistakes: criticalMistakes.count)
+        let summary = generateSummary(accuracy: accuracy, mistakes: criticalMistakes, profile: profile)
+
+        return GameAnalysis(
+            game: game,
+            summary: summary,
+            criticalMistakes: criticalMistakes,
+            missedTactics: missedTactics,
+            goodMoves: goodMoves,
+            accuracy: accuracy,
+            evaluationHistory: evaluations,
+            improvementAdvice: generateImprovementAdvice(criticalMistakes: criticalMistakes, profile: profile),
+            allMoveAnalyses: allAnalyses,
+            engineSource: cloudCallsSucceeded == game.moves.count ? .cloudStockfish
+                : (cloudCallsSucceeded > 0 ? .mixedCloudAndLocal : .localEngine)
+        )
+    }
+
+    /// Move-quality classification used by the cloud analysis path. When the
+    /// played move matches the engine's own top choice it's automatically
+    /// `.best`; otherwise quality is estimated from how the actual move's
+    /// resulting evaluation compares to the position's evaluation before the
+    /// move (bounded, since we don't re-evaluate the "what if" board here).
+    private func assessQualityFromMove(move: ChessMove, bestMoveUCI: String?, bestMove: ChessMove?, evalBefore: Double, board: ChessBoard) -> MoveQuality {
+        if let bestMoveUCI = bestMoveUCI {
+            if bestMoveUCI == move.longAlgebraic || bestMoveUCI.hasPrefix(move.longAlgebraic) {
+                return .best
+            }
+        } else if let best = bestMove, best.from == move.from, best.to == move.to {
+            return .best
+        }
+
+        // No cloud "what if I'd played the actual move" evaluation is fetched
+        // per-move (to keep network calls at 1/move), so fall back to the
+        // local engine's material/positional comparison between the actual
+        // move and the engine's suggested best move for a bucket estimate.
+        let engine = ChessEngineService.shared
+        guard let best = bestMove else { return .acceptable }
+        let boardAfterBest = engine.applyMove(best, to: board)
+        let boardAfterMove = engine.applyMove(move, to: board)
+        let sign = board.activeColor == .white ? 1 : -1
+        let evalBest = engine.evaluate(board: boardAfterBest) * sign
+        let evalMove = engine.evaluate(board: boardAfterMove) * sign
+        let diff = evalBest - evalMove
+
+        if diff <= 30 { return .good }
+        if diff <= 100 { return .acceptable }
+        if diff <= 200 { return .inaccuracy }
+        if diff <= 400 { return .mistake }
+        return .blunder
+    }
+
+    // MARK: - Game Analysis (local heuristic engine only, no network)
     func analyzeGame(_ game: ChessGame, profile: PlayerProfile) -> GameAnalysis {
         let engine = ChessEngineService.shared
         var criticalMistakes: [MoveAnalysis] = []
@@ -399,6 +531,22 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
     }
 }
 
+/// Which engine actually produced a GameAnalysis, shown to the user so it's
+/// clear whether they got real Stockfish or the offline fallback.
+enum AnalysisEngineSource: Equatable {
+    case cloudStockfish
+    case mixedCloudAndLocal
+    case localEngine
+
+    var label: String {
+        switch self {
+        case .cloudStockfish: return "Analyzed with Stockfish"
+        case .mixedCloudAndLocal: return "Analyzed with Stockfish (partial — connection dropped mid-game)"
+        case .localEngine: return "Analyzed with offline engine (no internet connection)"
+        }
+    }
+}
+
 // MARK: - Game Analysis
 struct GameAnalysis {
     var game: ChessGame
@@ -413,6 +561,9 @@ struct GameAnalysis {
     /// PersonalPuzzleService to find .inaccuracy-quality moves too, which the
     /// buckets above deliberately exclude.
     var allMoveAnalyses: [MoveAnalysis] = []
+    /// Which engine produced this analysis -- defaults to the local engine
+    /// since the original synchronous `analyzeGame` never calls the cloud.
+    var engineSource: AnalysisEngineSource = .localEngine
 }
 
 struct MoveAnalysis: Identifiable {

@@ -5,6 +5,33 @@ final class ChessEngineService: @unchecked Sendable {
     static let shared = ChessEngineService()
     private init() {}
 
+    // MARK: - UCI Move Parsing
+    /// Turns a UCI-style long-algebraic move string ("e2e4", "e7e8q" for
+    /// promotion) into a fully-flagged `ChessMove` by matching it against the
+    /// legal moves in this position -- this is what lets castling/en-passant/
+    /// promotion be resolved correctly instead of hand-building a ChessMove.
+    /// Used to translate cloud Stockfish's `bestmove`/`continuation` output
+    /// (see StockfishCloudService) and puzzle solution strings alike.
+    func move(fromUCI uci: String, board: ChessBoard) -> ChessMove? {
+        guard uci.count >= 4 else { return nil }
+        let fromStr = String(uci.prefix(2))
+        let toStr = String(uci.dropFirst(2).prefix(2))
+        guard let from = Square(algebraic: fromStr),
+              let to = Square(algebraic: toStr),
+              let piece = board[from] else { return nil }
+        let promotion: PieceType? = uci.count >= 5 ? {
+            switch uci[uci.index(uci.startIndex, offsetBy: 4)] {
+            case "q": return .queen
+            case "r": return .rook
+            case "b": return .bishop
+            case "n": return .knight
+            default: return nil
+            }
+        }() : nil
+        let candidates = legalMoves(for: piece, at: from, on: board)
+        return candidates.first { $0.to == to && ($0.promotionPiece == promotion || promotion == nil) }
+    }
+
     // MARK: - Legal Move Generation
     func legalMoves(for color: PieceColor, on board: ChessBoard) -> [ChessMove] {
         var moves: [ChessMove] = []

@@ -402,31 +402,23 @@ struct ChessSquareView: View {
 }
 
 // MARK: - Chess Piece Glyph
-/// Renders a chess piece as a solid, outlined silhouette -- the same approach
-/// chess.com and Lichess piece sets use (a filled shape + a contrasting
-/// border) rather than relying on a font's built-in glyph shading.
-/// `ChessPiece.symbolForColor` always returns the solid glyph variant
-/// regardless of color; this view turns that single shape into a properly
-/// legible white-or-black piece with a same-shape, larger duplicate glyph in
-/// the outline color placed directly behind the normal-size fill glyph (see
-/// `outlineScale`) -- two flat layers, no blur, no offset copies, so there's
-/// no room for anti-aliasing at small (pawn) sizes to blend the two colors
-/// toward each other.
+/// Renders a chess piece as real vector artwork -- each piece type is a
+/// hand-authored SwiftUI `Shape` (see `ChessPieceShape` below), filled and
+/// stroked like a traditional Staunton set, instead of a Unicode font glyph.
+/// The proportions/palette were checked against a chess.com reference
+/// screenshot (cream/steel-blue board, ivory vs. charcoal pieces) via a
+/// preview before being ported into real code here.
 struct ChessPieceGlyph: View {
     let piece: ChessPiece
     let fontSize: CGFloat
     /// Which of the four named piece sets (Settings > Piece Style) to render.
-    /// Since the app draws pieces from styled Unicode glyphs rather than
-    /// bundled artwork, each style is differentiated by palette and outline
-    /// weight, not a different glyph shape.
+    /// All four styles share the same vector shapes; only palette and stroke
+    /// weight change between them.
     var pieceStyle: PieceStyle = .standard
 
     /// Deliberately at the extremes (pure white / pure black) for .standard
-    /// and .neo -- previous, slightly-off-white/off-black values (0.99/0.08)
-    /// left enough room for anti-aliasing at small (pawn) sizes to blend the
-    /// fill toward the dark outline, which is what made white and black
-    /// pawns hard to tell apart. Going fully to the ends of the scale removes
-    /// that ambiguity outright.
+    /// and .neo so there's no ambiguity between white and black pieces even
+    /// at small (pawn) sizes.
     private var fillColor: Color {
         switch pieceStyle {
         case .standard, .neo:
@@ -454,33 +446,197 @@ struct ChessPieceGlyph: View {
         }
     }
 
-    /// How much larger the outline layer is drawn behind the fill layer, as a
-    /// fraction of fontSize -- e.g. 0.12 means the outline glyph is rendered
-    /// 12% bigger, so a consistent ring of the stroke color peeks out on all
-    /// sides once the same-shape fill glyph is centered on top of it. This is
-    /// a simpler, more robust "outlined text" technique than stacking several
-    /// offset copies with a blurred shadow: two layers, no blur, no loop, so
-    /// there's no room for small-glyph blending artifacts to muddy the color.
-    private var outlineScale: CGFloat {
+    /// Stroke weight as a fraction of fontSize -- mirrors the old per-style
+    /// outline weighting, now drawn as a real vector stroke around the piece
+    /// silhouette instead of a larger duplicate glyph placed behind it.
+    private var strokeWidth: CGFloat {
         switch pieceStyle {
-        case .standard: return 1.14
-        case .neo:       return 1.20   // bolder, modern flat look
-        case .alpha:      return 1.08  // thin, elegant outline
-        case .merida:     return 1.16  // traditional wooden-set weight
+        case .standard: return fontSize * 0.05
+        case .neo:       return fontSize * 0.065  // bolder, modern flat look
+        case .alpha:     return fontSize * 0.035  // thin, elegant outline
+        case .merida:    return fontSize * 0.055  // traditional wooden-set weight
         }
     }
 
     var body: some View {
         ZStack {
-            Text(piece.symbolForColor)
-                .font(.system(size: fontSize * outlineScale))
-                .foregroundColor(strokeColor)
+            ChessPieceShape(type: piece.type)
+                .fill(fillColor)
+                .overlay(
+                    ChessPieceShape(type: piece.type)
+                        .stroke(strokeColor, lineWidth: strokeWidth)
+                )
 
-            Text(piece.symbolForColor)
-                .font(.system(size: fontSize))
-                .foregroundColor(fillColor)
+            // Small engraved details drawn as separate thin shapes rather
+            // than baked into the fill/stroke silhouette -- the bishop's
+            // mitre slit and the knight's eye.
+            switch piece.type {
+            case .bishop:
+                Capsule()
+                    .fill(strokeColor.opacity(0.7))
+                    .frame(width: fontSize * 0.23, height: fontSize * 0.035)
+                    .offset(y: -fontSize * 0.11)
+            case .knight:
+                Circle()
+                    .fill(strokeColor.opacity(0.55))
+                    .frame(width: fontSize * 0.05, height: fontSize * 0.05)
+                    .offset(x: fontSize * 0.09, y: -fontSize * 0.24)
+            default:
+                EmptyView()
+            }
         }
+        .frame(width: fontSize, height: fontSize)
         .shadow(color: .black.opacity(0.25), radius: fontSize * 0.03, x: 0, y: fontSize * 0.02)
+    }
+}
+
+/// A single piece silhouette, normalized to a 45x45 coordinate space (the
+/// convention most chess piece sets use) and scaled to fit whatever square
+/// `rect` it's given. Proportions follow a traditional Staunton set: king
+/// tallest with a cross finial, queen with a five-point crown, bishop with a
+/// mitre slit, knight a hook-profile horse head, rook crenellated, pawn a
+/// simple ball-and-body.
+struct ChessPieceShape: Shape {
+    let type: PieceType
+
+    func path(in rect: CGRect) -> Path {
+        switch type {
+        case .pawn:   return pawnPath(in: rect)
+        case .rook:   return rookPath(in: rect)
+        case .knight: return knightPath(in: rect)
+        case .bishop: return bishopPath(in: rect)
+        case .queen:  return queenPath(in: rect)
+        case .king:   return kingPath(in: rect)
+        }
+    }
+
+    private func scale(_ rect: CGRect) -> (CGFloat, (CGFloat, CGFloat) -> CGPoint) {
+        let s = rect.width / 45
+        let pt: (CGFloat, CGFloat) -> CGPoint = { x, y in
+            CGPoint(x: rect.minX + x * s, y: rect.minY + y * s)
+        }
+        return (s, pt)
+    }
+
+    private func pawnPath(in rect: CGRect) -> Path {
+        let (s, pt) = scale(rect)
+        var p = Path()
+        p.addEllipse(in: CGRect(x: rect.minX + (22.5 - 6.3) * s, y: rect.minY + (11 - 6.3) * s,
+                                 width: 12.6 * s, height: 12.6 * s))
+        p.move(to: pt(16, 19))
+        p.addQuadCurve(to: pt(29, 19), control: pt(22.5, 15))
+        p.addLine(to: pt(32, 30))
+        p.addQuadCurve(to: pt(13, 30), control: pt(22.5, 34.5))
+        p.closeSubpath()
+        p.addRoundedRect(in: CGRect(x: rect.minX + 10 * s, y: rect.minY + 33.5 * s, width: 25 * s, height: 6 * s),
+                          cornerSize: CGSize(width: 2 * s, height: 2 * s))
+        return p
+    }
+
+    private func rookPath(in rect: CGRect) -> Path {
+        let (s, pt) = scale(rect)
+        var p = Path()
+        p.addRect(CGRect(x: rect.minX + 10.5 * s, y: rect.minY + 9 * s, width: 4.2 * s, height: 5.5 * s))
+        p.addRect(CGRect(x: rect.minX + 20.4 * s, y: rect.minY + 9 * s, width: 4.2 * s, height: 5.5 * s))
+        p.addRect(CGRect(x: rect.minX + 30.3 * s, y: rect.minY + 9 * s, width: 4.2 * s, height: 5.5 * s))
+        p.addRect(CGRect(x: rect.minX + 9.5 * s, y: rect.minY + 14.5 * s, width: 26 * s, height: 4 * s))
+        p.move(to: pt(12.5, 18.5))
+        p.addLine(to: pt(32.5, 18.5))
+        p.addLine(to: pt(29.5, 31))
+        p.addLine(to: pt(15.5, 31))
+        p.closeSubpath()
+        p.addRoundedRect(in: CGRect(x: rect.minX + 10 * s, y: rect.minY + 33.5 * s, width: 25 * s, height: 6 * s),
+                          cornerSize: CGSize(width: 2 * s, height: 2 * s))
+        return p
+    }
+
+    private func knightPath(in rect: CGRect) -> Path {
+        let (_, pt) = scale(rect)
+        var p = Path()
+        p.move(to: pt(31, 33.5))
+        p.addLine(to: pt(12.5, 33.5))
+        p.addQuadCurve(to: pt(10.5, 31.5), control: pt(10.5, 33.5))
+        p.addLine(to: pt(10.5, 30))
+        p.addQuadCurve(to: pt(12.5, 28), control: pt(10.5, 28))
+        p.addLine(to: pt(18, 28))
+        p.addCurve(to: pt(17.2, 15.6), control1: pt(15.4, 24.4), control2: pt(14.7, 20))
+        p.addCurve(to: pt(26.9, 8.8), control1: pt(19.4, 11.7), control2: pt(23.2, 8.8))
+        p.addCurve(to: pt(31.7, 13.2), control1: pt(29.7, 8.8), control2: pt(31.7, 10.7))
+        p.addCurve(to: pt(29.1, 16.1), control1: pt(31.7, 14.9), control2: pt(30.6, 16.1))
+        p.addCurve(to: pt(27.3, 14.4), control1: pt(28.1, 16.1), control2: pt(27.3, 15.4))
+        p.addCurve(to: pt(25.2, 17.7), control1: pt(25.5, 14.2), control2: pt(24.3, 16.0))
+        p.addLine(to: pt(31.4, 21.4))
+        p.addCurve(to: pt(35.0, 27.5), control1: pt(33.6, 22.7), control2: pt(35.0, 25.0))
+        p.addLine(to: pt(35.0, 31.2))
+        p.addQuadCurve(to: pt(33.0, 33.2), control: pt(35.0, 33.2))
+        p.closeSubpath()
+        return p
+    }
+
+    private func bishopPath(in rect: CGRect) -> Path {
+        let (s, pt) = scale(rect)
+        var p = Path()
+        p.addEllipse(in: CGRect(x: rect.minX + (22.5 - 2.3) * s, y: rect.minY + (5.5 - 2.3) * s,
+                                 width: 4.6 * s, height: 4.6 * s))
+        p.addRect(CGRect(x: rect.minX + 21.7 * s, y: rect.minY + 7.6 * s, width: 1.6 * s, height: 2.6 * s))
+        p.addEllipse(in: CGRect(x: rect.minX + (22.5 - 6.4) * s, y: rect.minY + (15 - 6.4) * s,
+                                 width: 12.8 * s, height: 12.8 * s))
+        p.move(to: pt(16, 20.5))
+        p.addQuadCurve(to: pt(29, 20.5), control: pt(22.5, 17))
+        p.addLine(to: pt(32, 31))
+        p.addQuadCurve(to: pt(13, 31), control: pt(22.5, 35.2))
+        p.closeSubpath()
+        p.addRoundedRect(in: CGRect(x: rect.minX + 10 * s, y: rect.minY + 33.5 * s, width: 25 * s, height: 6 * s),
+                          cornerSize: CGSize(width: 2 * s, height: 2 * s))
+        return p
+    }
+
+    private func queenPath(in rect: CGRect) -> Path {
+        let (s, pt) = scale(rect)
+        var p = Path()
+        let crownPoints: [(CGFloat, CGFloat, CGFloat)] = [
+            (9.5, 10.5, 2.3), (16.3, 6.2, 2.3), (22.5, 4.3, 2.5), (28.7, 6.2, 2.3), (35.5, 10.5, 2.3)
+        ]
+        for (cx, cy, r) in crownPoints {
+            p.addEllipse(in: CGRect(x: rect.minX + (cx - r) * s, y: rect.minY + (cy - r) * s,
+                                     width: 2 * r * s, height: 2 * r * s))
+        }
+        p.move(to: pt(10.5, 12.5))
+        p.addLine(to: pt(34.5, 12.5))
+        p.addLine(to: pt(31.5, 22.5))
+        p.addQuadCurve(to: pt(13.5, 22.5), control: pt(22.5, 26.5))
+        p.closeSubpath()
+        p.move(to: pt(14, 22.8))
+        p.addQuadCurve(to: pt(31, 22.8), control: pt(22.5, 34.5))
+        p.addLine(to: pt(33.2, 34.5))
+        p.addQuadCurve(to: pt(11.8, 34.5), control: pt(22.5, 39.5))
+        p.closeSubpath()
+        p.addRoundedRect(in: CGRect(x: rect.minX + 9.5 * s, y: rect.minY + 38 * s, width: 26 * s, height: 5.5 * s),
+                          cornerSize: CGSize(width: 2 * s, height: 2 * s))
+        return p
+    }
+
+    private func kingPath(in rect: CGRect) -> Path {
+        let (s, pt) = scale(rect)
+        var p = Path()
+        // Cross finial, drawn as two thin rounded bars rather than a stroked line.
+        p.addRoundedRect(in: CGRect(x: rect.minX + (22.5 - 1.3) * s, y: rect.minY + 1.5 * s,
+                                     width: 2.6 * s, height: 7 * s), cornerSize: CGSize(width: 1.3 * s, height: 1.3 * s))
+        p.addRoundedRect(in: CGRect(x: rect.minX + 19 * s, y: rect.minY + (4.7 - 1.3) * s,
+                                     width: 7 * s, height: 2.6 * s), cornerSize: CGSize(width: 1.3 * s, height: 1.3 * s))
+        p.move(to: pt(13.5, 11.5))
+        p.addLine(to: pt(31.5, 11.5))
+        p.addLine(to: pt(28.7, 19.5))
+        p.addQuadCurve(to: pt(16.3, 19.5), control: pt(22.5, 23.3))
+        p.closeSubpath()
+        p.move(to: pt(13, 20))
+        p.addQuadCurve(to: pt(32, 20), control: pt(22.5, 34.5))
+        p.addLine(to: pt(34.2, 34.5))
+        p.addQuadCurve(to: pt(10.8, 34.5), control: pt(22.5, 40))
+        p.closeSubpath()
+        p.addRoundedRect(in: CGRect(x: rect.minX + 8.8 * s, y: rect.minY + 38 * s, width: 27.4 * s, height: 5.5 * s),
+                          cornerSize: CGSize(width: 2 * s, height: 2 * s))
+        return p
     }
 }
 
