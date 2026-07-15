@@ -332,6 +332,61 @@ final class ChessEngineService: @unchecked Sendable {
         return notation
     }
 
+    /// Full standard algebraic notation for a move, including disambiguation
+    /// ("Nbd2" when both knights reach d2) and the check/mate suffix ("+"/"#").
+    /// `generateNotation` skips both because it is also called from display
+    /// paths that already know the game state -- this variant pays for the
+    /// extra legal-move enumeration to produce exact, book-style notation.
+    func san(_ move: ChessMove, on board: ChessBoard) -> String {
+        var notation: String
+
+        if move.isCastling {
+            notation = move.to.file == 6 ? "O-O" : "O-O-O"
+        } else {
+            notation = ""
+            let piece = move.piece
+
+            if piece.type != .pawn {
+                notation += piece.type.symbol.uppercased()
+                // Disambiguate when another piece of the same type could also
+                // legally reach the destination square.
+                let rivals = legalMoves(for: piece.color, on: board).filter {
+                    $0.piece.type == piece.type && $0.to == move.to && $0.from != move.from
+                }
+                if !rivals.isEmpty {
+                    if !rivals.contains(where: { $0.from.file == move.from.file }) {
+                        notation += String("abcdefgh"[String.Index(utf16Offset: move.from.file, in: "abcdefgh")])
+                    } else if !rivals.contains(where: { $0.from.rank == move.from.rank }) {
+                        notation += String(move.from.rank + 1)
+                    } else {
+                        notation += move.from.algebraic
+                    }
+                }
+            }
+
+            if move.isCapture {
+                if piece.type == .pawn {
+                    notation += String("abcdefgh"[String.Index(utf16Offset: move.from.file, in: "abcdefgh")])
+                }
+                notation += "x"
+            }
+
+            notation += move.to.algebraic
+
+            if let promo = move.promotionPiece {
+                notation += "=\(promo.symbol.uppercased())"
+            }
+        }
+
+        let after = applyMove(move, to: board)
+        let opponent = move.piece.color.opposite
+        if isInCheck(board: after, color: opponent) {
+            notation += legalMoves(for: opponent, on: after).isEmpty ? "#" : "+"
+        }
+
+        return notation
+    }
+
     // MARK: - Position Evaluation
     /// Comprehensive evaluation incorporating:
     /// - Material balance with piece-square tables

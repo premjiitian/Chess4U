@@ -115,21 +115,43 @@ class ChessBoardViewModel: ObservableObject {
     }
 
     // MARK: - AI Move
+    /// Plays the engine reply. Cloud Stockfish first -- it responds in a
+    /// fraction of the time the local minimax needs at comparable strength --
+    /// falling back to the local engine when the network is unavailable.
     func makeAIMove(depth: Int = 3) {
         isAIThinking = true
         let board = game.board
         let color = board.activeColor
         let engine = self.engine  // capture before leaving MainActor context
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let move = engine.bestMove(for: color, on: board, depth: depth)
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.isAIThinking = false
-                if let move = move {
-                    self.executeMove(move)
-                }
+        // Map the local minimax depth setting (2/3/4 = Easy/Medium/Hard) to a
+        // Stockfish search depth: keep Easy human-beatable while making Hard
+        // an actual engine-strength opponent.
+        let cloudDepth: Int
+        switch depth {
+        case ...2: cloudDepth = 2
+        case 3:    cloudDepth = 8
+        default:   cloudDepth = 13
+        }
+
+        Task { [weak self] in
+            var move: ChessMove? = nil
+            if let analysis = try? await StockfishCloudService.shared.analyze(fen: board.fen, depth: cloudDepth),
+               let uci = analysis.bestMoveUCI {
+                move = engine.move(fromUCI: uci, board: board)
             }
+            if move == nil {
+                // Offline / API failure: local minimax on a background thread.
+                move = await Task.detached(priority: .userInitiated) {
+                    engine.bestMove(for: color, on: board, depth: depth)
+                }.value
+            }
+            guard let self = self else { return }
+            self.isAIThinking = false
+            // Drop the reply if the position changed while we were thinking
+            // (player hit undo or started a new game mid-request).
+            guard let move = move, self.game.board.fen == board.fen else { return }
+            self.executeMove(move)
         }
     }
 

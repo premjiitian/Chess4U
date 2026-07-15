@@ -117,6 +117,14 @@ struct ChessPuzzle: Codable, Identifiable {
         }.shuffled().prefix(5).map { $0 }
     }
 
+    /// Every authored puzzle -- the base database plus the daily-puzzle pool,
+    /// deduplicated by position. Training sessions draw from this combined
+    /// pool so the same handful of puzzles doesn't repeat every session.
+    static let fullDatabase: [ChessPuzzle] = {
+        var seenFENs = Set<String>()
+        return (puzzleDatabase + dailyPuzzlePool).filter { seenFENs.insert($0.fen).inserted }
+    }()
+
     // Sample puzzle database
     static let puzzleDatabase: [ChessPuzzle] = [
         ChessPuzzle(

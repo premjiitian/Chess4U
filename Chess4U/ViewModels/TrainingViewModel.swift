@@ -255,16 +255,15 @@ class TrainingViewModel: ObservableObject {
         isSessionComplete = true
     }
 
-    /// Actually reveals the solution: plays the remaining scripted move(s) on
-    /// the board and describes them in the status banner, instead of just
-    /// flipping to a "showingSolution" state with no visible change (which is
-    /// what happened before -- tapping "Solution" did nothing you could see).
+    /// Actually reveals the solution: shows the full remaining line in real
+    /// move notation ("1.Qh5+ Kd7 2.Qxf7#"), plays it out on the board, then
+    /// auto-advances to the next puzzle so viewing a solution never dead-ends.
     func showSolution() {
         guard currentSolutionIndex < solutionMoves.count else { return }
         puzzleState = .showingSolution
 
         let remaining = Array(solutionMoves[currentSolutionIndex...])
-        coachComment = "Solution: " + describeMove(remaining.first ?? "", board: boardVM.game.board)
+        coachComment = "Solution: " + solutionLine(from: remaining, board: boardVM.game.board)
 
         if var session = session {
             session.puzzlesAttempted += 1
@@ -280,12 +279,37 @@ class TrainingViewModel: ObservableObject {
                     self.boardVM.executeMove(move)
                 }
             }
+            // Same pattern as the post-solve timer: give the player a moment
+            // to see the final position, then move on automatically.
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            if self.puzzleState == .showingSolution {
+                self.advanceToNextPuzzle()
+            }
         }
     }
 
-    private func describeMove(_ algebraic: String, board: ChessBoard) -> String {
-        guard let move = parseMove(algebraic, board: board) else { return algebraic }
-        return "\(move.piece.type.rawValue) \(move.from.algebraic) \u{2192} \(move.to.algebraic)"
+    /// Renders a UCI move list as a numbered SAN line ("1.Qh5+ Kd7 2.Qxf7#")
+    /// by simulating the moves from the given position.
+    private func solutionLine(from uciMoves: [String], board startBoard: ChessBoard) -> String {
+        let engine = ChessEngineService.shared
+        var board = startBoard
+        var parts: [String] = []
+        for uci in uciMoves {
+            guard let move = engine.move(fromUCI: uci, board: board) else {
+                parts.append(uci)
+                break
+            }
+            let san = engine.san(move, on: board)
+            if board.activeColor == .white {
+                parts.append("\(board.fullMoveNumber).\(san)")
+            } else if parts.isEmpty {
+                parts.append("\(board.fullMoveNumber)...\(san)")
+            } else {
+                parts.append(san)
+            }
+            board = engine.applyMove(move, to: board)
+        }
+        return parts.joined(separator: " ")
     }
 
     func requestHint() {

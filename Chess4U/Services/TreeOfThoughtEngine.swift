@@ -170,9 +170,9 @@ final class TreeOfThoughtEngine {
             case .bandE: return .expert
             }
         }()
-        let filtered = ChessPuzzle.puzzleDatabase.filter { $0.difficulty == targetDifficulty }
+        let filtered = ChessPuzzle.fullDatabase.filter { $0.difficulty == targetDifficulty }
         // Fallback to any difficulty if not enough puzzles
-        let pool = filtered.isEmpty ? ChessPuzzle.puzzleDatabase : filtered
+        let pool = filtered.isEmpty ? ChessPuzzle.fullDatabase : filtered
         return pool.shuffled().prefix(3).map { $0 }
     }
 
@@ -197,7 +197,7 @@ final class TreeOfThoughtEngine {
         let relevantWeakThemes = weakThemes.filter { baseThemes.contains($0) }.prefix(2)
         let priorityThemes = Array(relevantWeakThemes) + baseThemes
 
-        let db = ChessPuzzle.puzzleDatabase
+        let db = ChessPuzzle.fullDatabase
         var pool = db.filter { p in
             priorityThemes.contains(p.theme) && (difficulty == nil || p.difficulty == difficulty)
         }
@@ -208,7 +208,7 @@ final class TreeOfThoughtEngine {
             pool = db.filter { baseThemes.contains($0.theme) }
         }
 
-        // Bias: if weak themes exist, put one weak-theme puzzle first
+        // Bias: if weak themes exist, guarantee one weak-theme puzzle a slot
         var result: [ChessPuzzle] = []
         if !relevantWeakThemes.isEmpty,
            let weakPuzzle = pool.filter({ relevantWeakThemes.contains($0.theme) }).randomElement() {
@@ -216,7 +216,9 @@ final class TreeOfThoughtEngine {
         }
         let remaining = pool.filter { p in !result.contains(where: { $0.id == p.id }) }.shuffled()
         result += Array(remaining.prefix(count - result.count))
-        return result
+        // Shuffle the final order too -- otherwise the guaranteed weak-theme
+        // puzzle always leads and every session opens the same way.
+        return result.shuffled()
     }
 
     // MARK: - Blunder Reduction Protocol Questions
