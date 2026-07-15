@@ -67,15 +67,31 @@ final class ExternalPlatformService: ObservableObject {
         return collected.sorted { $0.endTime < $1.endTime }
     }
 
+    /// chess.com's public API rejects requests without an identifying
+    /// User-Agent header (403), which looked like the import silently never
+    /// loading. Also bounds each request to 15s so a bad connection fails
+    /// fast with a visible error message instead of hanging indefinitely.
+    private func chesscomRequest(_ url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.setValue("Chess4U-iOS (https://github.com/premjiitian/Chess4U)", forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 15
+        return request
+    }
+
     private func fetchChesscomArchiveURLs(username: String) async throws -> [String] {
         let archivesURL = URL(string: "https://api.chess.com/pub/player/\(username.lowercased())/games/archives")!
-        let (archivesData, _) = try await URLSession.shared.data(from: archivesURL)
+        let (archivesData, response) = try await URLSession.shared.data(for: chesscomRequest(archivesURL))
+        if let http = response as? HTTPURLResponse, http.statusCode == 404 {
+            throw NSError(domain: "Chess4U", code: 404, userInfo: [
+                NSLocalizedDescriptionKey: "chess.com user \u{201C}\(username)\u{201D} not found — check the spelling."
+            ])
+        }
         struct Archives: Decodable { let archives: [String] }
         return try JSONDecoder().decode(Archives.self, from: archivesData).archives
     }
 
     private func fetchChesscomGames(archiveURL: URL) async throws -> [ExternalGame] {
-        let (gamesData, _) = try await URLSession.shared.data(from: archiveURL)
+        let (gamesData, _) = try await URLSession.shared.data(for: chesscomRequest(archiveURL))
 
         struct ChesscomGame: Decodable {
             let pgn: String?
@@ -128,6 +144,7 @@ final class ExternalPlatformService: ObservableObject {
         var request = URLRequest(url: url)
         // Lichess requires Accept: application/x-ndjson for JSON-per-line format
         request.setValue("application/x-ndjson", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 20
 
         let (data, _) = try await URLSession.shared.data(for: request)
         let lines = String(data: data, encoding: .utf8)?
@@ -207,7 +224,7 @@ final class ExternalPlatformService: ObservableObject {
         struct Profile: Decodable { let name: String? }
         var displayName: String? = nil
         if let profileURL = URL(string: "https://api.chess.com/pub/player/\(clean)") {
-            if let (data, _) = try? await URLSession.shared.data(from: profileURL),
+            if let (data, _) = try? await URLSession.shared.data(for: chesscomRequest(profileURL)),
                let profile = try? JSONDecoder().decode(Profile.self, from: data) {
                 displayName = profile.name
             }
@@ -222,7 +239,7 @@ final class ExternalPlatformService: ObservableObject {
         guard let statsURL = URL(string: "https://api.chess.com/pub/player/\(clean)/stats") else {
             return QuickProfile(username: username, displayName: displayName, rating: nil)
         }
-        let (data, _) = try await URLSession.shared.data(from: statsURL)
+        let (data, _) = try await URLSession.shared.data(for: chesscomRequest(statsURL))
         let stats = try JSONDecoder().decode(Stats.self, from: data)
         let rating = stats.chess_rapid?.last?.rating ?? stats.chess_blitz?.last?.rating ?? stats.chess_bullet?.last?.rating
         return QuickProfile(username: username, displayName: displayName, rating: rating)

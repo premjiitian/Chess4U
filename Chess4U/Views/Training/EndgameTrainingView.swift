@@ -241,8 +241,17 @@ struct EndgamePuzzleView: View {
 
     var body: some View {
         VStack {
-            ChessBoardView(vm: vm.boardVM, interactive: true)
+            ChessBoardView(vm: vm.boardVM, interactive: vm.puzzleState == .waitingForMove)
                 .padding()
+                // Without this the practice position was inert -- moves were
+                // never routed to the view model, so nothing ever responded.
+                .onChange(of: vm.boardVM.game.moves.count) { _ in
+                    if let lastMove = vm.boardVM.game.moves.last {
+                        vm.handlePlayerMove(lastMove)
+                    }
+                }
+
+            PuzzleStatusView(state: vm.puzzleState, comment: vm.coachComment)
 
             VStack(alignment: .leading, spacing: 12) {
                 Text(puzzle.title)

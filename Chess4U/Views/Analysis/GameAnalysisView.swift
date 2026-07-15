@@ -12,6 +12,11 @@ struct GameAnalysisView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                // The board replay is available immediately -- the player can
+                // step through the game while Stockfish analysis streams in,
+                // instead of staring at a spinner for a minute.
+                boardReplayCard
+
                 if vm.isAnalyzing {
                     analyzingView
                 } else if let analysis = vm.analysis {
@@ -47,66 +52,74 @@ struct GameAnalysisView: View {
             vm.sourceGame = sourceGame
             vm.analyzeGame(game)
         }
+        .onDisappear {
+            vm.cancelAnalysis()
+        }
     }
 
     var analyzingView: some View {
-        VStack(spacing: 20) {
-            ProgressView()
-                .progressViewStyle(.circular)
-                .scaleEffect(1.5)
-            Text("Analyzing your game...")
-                .font(.headline)
-            Text("This may take a moment")
+        VStack(spacing: 14) {
+            ProgressView(value: vm.analysisTotal > 0 ? Double(vm.analysisProgress) / Double(vm.analysisTotal) : 0)
+                .progressViewStyle(.linear)
+                .tint(AppTheme.accent)
+            Text("Analyzing with Stockfish — move \(vm.analysisProgress) of \(vm.analysisTotal)")
+                .font(.subheadline)
+                .fontWeight(.medium)
+            Text("About 1 second per move (\u{2248}\(max(vm.analysisTotal - vm.analysisProgress, 1)) sec remaining). You can replay the game above while you wait.")
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(40)
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+    }
+
+    var boardReplayCard: some View {
+        VStack(spacing: 0) {
+            ChessBoardView(vm: vm.boardVM, interactive: false)
+                .padding(8)
+
+            // Playback controls
+            HStack(spacing: 24) {
+                Button { vm.firstMove() } label: {
+                    Image(systemName: "backward.end.fill")
+                }
+                Button { vm.previousMove() } label: {
+                    Image(systemName: "backward.fill")
+                }
+                Text("Move \(vm.currentMoveIndex)/\(game.moves.count)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Button { vm.nextMove() } label: {
+                    Image(systemName: "forward.fill")
+                }
+                Button { vm.lastMove() } label: {
+                    Image(systemName: "forward.end.fill")
+                }
+            }
+            .font(.title3)
+            .padding()
+
+            // Bookmark the position currently on the board -- not just
+            // the auto-flagged mistakes -- as a puzzle to practice later.
+            Button {
+                withAnimation { _ = vm.saveCurrentPositionAsPuzzle() }
+            } label: {
+                Label("Save This Position as a Puzzle", systemImage: "star.fill")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            .foregroundColor(AppTheme.accent)
+            .padding(.bottom, 12)
+        }
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
     }
 
     func analysisContent(_ analysis: GameAnalysis) -> some View {
         VStack(spacing: 16) {
-            // Board replay
-            VStack(spacing: 0) {
-                ChessBoardView(vm: vm.boardVM, interactive: false)
-                    .padding(8)
-
-                // Playback controls
-                HStack(spacing: 24) {
-                    Button { vm.firstMove() } label: {
-                        Image(systemName: "backward.end.fill")
-                    }
-                    Button { vm.previousMove() } label: {
-                        Image(systemName: "backward.fill")
-                    }
-                    Text("Move \(vm.currentMoveIndex)/\(game.moves.count)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Button { vm.nextMove() } label: {
-                        Image(systemName: "forward.fill")
-                    }
-                    Button { vm.lastMove() } label: {
-                        Image(systemName: "forward.end.fill")
-                    }
-                }
-                .font(.title3)
-                .padding()
-
-                // Bookmark the position currently on the board -- not just
-                // the auto-flagged mistakes -- as a puzzle to practice later.
-                Button {
-                    withAnimation { _ = vm.saveCurrentPositionAsPuzzle() }
-                } label: {
-                    Label("Save This Position as a Puzzle", systemImage: "star.fill")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                }
-                .foregroundColor(AppTheme.accent)
-                .padding(.bottom, 12)
-            }
-            .background(Color(.systemBackground))
-            .cornerRadius(16)
-
             // Game Summary
             summaryCard(analysis)
 

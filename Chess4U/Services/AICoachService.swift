@@ -234,7 +234,8 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
     /// (`ChessEngineService`) move-by-move if the network is unavailable --
     /// once one cloud call fails, the rest of the game uses the local engine
     /// too, instead of retrying/timing out on every remaining move.
-    func analyzeGameCloud(_ game: ChessGame, profile: PlayerProfile, depth: Int = 10) async -> GameAnalysis {
+    func analyzeGameCloud(_ game: ChessGame, profile: PlayerProfile, depth: Int = 10,
+                          onProgress: (@MainActor (Int, Int) -> Void)? = nil) async -> GameAnalysis {
         let engine = ChessEngineService.shared
         let cloud = StockfishCloudService.shared
         var criticalMistakes: [MoveAnalysis] = []
@@ -246,8 +247,12 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
         var currentBoard = ChessBoard()
         var cloudAvailable = true
         var cloudCallsSucceeded = 0
+        let totalMoves = game.moves.count
 
         for (idx, move) in game.moves.enumerated() {
+            // Bail out promptly when the analysis screen is dismissed --
+            // there can be dozens of sequential network calls left otherwise.
+            if Task.isCancelled { break }
             var evaluation: Double
             var bestMove: ChessMove?
             var bestMoveUCI: String? = nil
@@ -301,6 +306,9 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
             }
 
             currentBoard = engine.applyMove(move, to: currentBoard)
+            if let onProgress = onProgress {
+                await onProgress(idx + 1, totalMoves)
+            }
         }
 
         // Fill in quality for the final position's eval swing now that we

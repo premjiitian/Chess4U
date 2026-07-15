@@ -119,7 +119,12 @@ class TrainingViewModel: ObservableObject {
 
     // MARK: - Handle Player Move
     func handlePlayerMove(_ move: ChessMove) {
-        guard currentPuzzle != nil, puzzleState == .waitingForMove else { return }
+        guard let puzzle = currentPuzzle, puzzleState == .waitingForMove else { return }
+        // The board reports every move made on it -- including the scripted
+        // opponent reply this view model plays itself. Grading the opponent's
+        // own reply against the player's next expected move flagged every
+        // multi-move puzzle "incorrect" right after a correct first move.
+        guard move.piece.color == puzzle.playerToMove else { return }
 
         let expectedMove = solutionMoves[currentSolutionIndex]
         let playerMove = move.longAlgebraic
@@ -137,18 +142,59 @@ class TrainingViewModel: ObservableObject {
                 makeOpponentMove()
             }
         } else {
-            handleIncorrectMove(move)
+            verifyAlternativeMove(move)
         }
     }
 
     private func makeOpponentMove() {
         guard currentSolutionIndex < solutionMoves.count else { return }
         let opponentMove = solutionMoves[currentSolutionIndex]
-        // Apply the scripted opponent move
-        let board = boardVM.game.board
-        if let sq = parseMove(opponentMove, board: board) {
-            boardVM.executeMove(sq)
-            currentSolutionIndex += 1
+        // Brief pause before the scripted reply so the player actually sees
+        // the opponent respond instead of the board mutating instantly.
+        puzzleState = .correct
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            guard self.puzzleState == .correct else { return }
+            if let reply = self.parseMove(opponentMove, board: self.boardVM.game.board) {
+                self.boardVM.executeMove(reply)
+                self.currentSolutionIndex += 1
+            }
+            self.puzzleState = .waitingForMove
+        }
+    }
+
+    /// The player's move didn't match the scripted solution. Before calling
+    /// it wrong, ask cloud Stockfish whether the played move is actually the
+    /// engine-best move in this position -- many puzzles (especially endgames)
+    /// have more than one winning continuation. Falls back to the strict
+    /// scripted comparison when offline.
+    private func verifyAlternativeMove(_ move: ChessMove) {
+        puzzleState = .checking
+        coachComment = "Checking your move with Stockfish…"
+
+        var playedUCI = move.longAlgebraic
+        if let promo = move.promotionPiece { playedUCI += String(promo.fenChar) }
+
+        // Reconstruct the position before the player's move.
+        let preGame = ChessGame(fen: currentPuzzle?.fen ?? "")
+        for m in boardVM.game.moves.dropLast() { preGame.makeMove(m) }
+        let preFEN = preGame.board.fen
+
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            var matchesEngineBest = false
+            if let analysis = try? await StockfishCloudService.shared.analyze(fen: preFEN, depth: 12),
+               let best = analysis.bestMoveUCI {
+                matchesEngineBest = best == playedUCI
+            }
+            guard self.puzzleState == .checking else { return }
+            if matchesEngineBest {
+                self.handlePuzzleSolved()
+                self.coachComment = "✅ Not the scripted line, but Stockfish confirms your move is best — well done!"
+            } else {
+                self.handleIncorrectMove(move)
+            }
         }
     }
 
@@ -208,6 +254,9 @@ class TrainingViewModel: ObservableObject {
                 self.loadPuzzle(puzzle)
             }
             self.puzzleState = .waitingForMove
+            // loadPuzzle clears the banner -- restore it so the player is
+            // clearly told the attempt was wrong, not just silently reset.
+            self.coachComment = "❌ Not correct. The board has been reset — try again."
         }
     }
 
@@ -279,9 +328,9 @@ class TrainingViewModel: ObservableObject {
                     self.boardVM.executeMove(move)
                 }
             }
-            // Same pattern as the post-solve timer: give the player a moment
-            // to see the final position, then move on automatically.
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            // Give the player ~45s to study the line and final position
+            // before moving on (the "Next" button skips sooner at any time).
+            try? await Task.sleep(nanoseconds: 45_000_000_000)
             if self.puzzleState == .showingSolution {
                 self.advanceToNextPuzzle()
             }
@@ -300,16 +349,41 @@ class TrainingViewModel: ObservableObject {
                 break
             }
             let san = engine.san(move, on: board)
-            if board.activeColor == .white {
-                parts.append("\(board.fullMoveNumber).\(san)")
-            } else if parts.isEmpty {
-                parts.append("\(board.fullMoveNumber)...\(san)")
+            // Figurine style: lead with the piece glyph. Crucially this gives
+            // pawn moves a visible piece too ("♟e4" instead of a bare "e4",
+            // which beginners often can't attribute to any piece).
+            let display: String
+            if move.isCastling {
+                display = san
+            } else if move.piece.type == .pawn {
+                display = move.piece.symbolForColor + san
             } else {
-                parts.append(san)
+                display = move.piece.symbolForColor + String(san.dropFirst())
+            }
+            if board.activeColor == .white {
+                parts.append("\(board.fullMoveNumber).\(display)")
+            } else if parts.isEmpty {
+                parts.append("\(board.fullMoveNumber)...\(display)")
+            } else {
+                parts.append(display)
             }
             board = engine.applyMove(move, to: board)
         }
         return parts.joined(separator: " ")
+    }
+
+    /// Saves the current puzzle into "My Puzzles" so the player can practice
+    /// it again later, independent of the session flow.
+    func flagCurrentPuzzle() {
+        guard let puzzle = currentPuzzle else { return }
+        var copy = puzzle
+        copy.attemptCount = 0
+        copy.solvedCorrectly = false
+        copy.timeSpent = 0
+        copy.hintsUsed = 0
+        let added = PersistenceService.shared.addPersonalPuzzles([copy])
+        coachComment = added > 0 ? "⭐ Saved to My Puzzles for future practice."
+                                 : "⭐ Already saved in My Puzzles."
     }
 
     func requestHint() {
@@ -345,6 +419,8 @@ enum PuzzleState {
     case idle
     case waitingForMove
     case correct
+    /// Cloud Stockfish is verifying whether an off-script move is engine-best.
+    case checking
     case incorrect
     case solved
     case showingSolution

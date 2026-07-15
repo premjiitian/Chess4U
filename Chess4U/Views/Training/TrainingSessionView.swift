@@ -129,8 +129,10 @@ struct TrainingSessionView: View {
                     PuzzleInfoCard(puzzle: puzzle)
                 }
 
-                // Chess Board
-                ChessBoardView(vm: vm.boardVM, interactive: true)
+                // Chess Board -- input only while a move is actually expected,
+                // so stray taps during the opponent's reply, the Stockfish
+                // check, or solution playback can't corrupt the scripted line.
+                ChessBoardView(vm: vm.boardVM, interactive: vm.puzzleState == .waitingForMove)
                     .padding(.horizontal)
                     .onChange(of: vm.boardVM.game.moves.count) { _ in
                         if let lastMove = vm.boardVM.game.moves.last {
@@ -170,6 +172,18 @@ struct TrainingSessionView: View {
                             .cornerRadius(10)
                     }
                     .disabled(vm.puzzleState == .showingSolution)
+
+                    // Flag this puzzle into "My Puzzles" to practice later.
+                    Button {
+                        vm.flagCurrentPuzzle()
+                    } label: {
+                        Label("Save", systemImage: "star")
+                            .frame(maxWidth: .infinity)
+                            .padding(10)
+                            .background(Color.orange.opacity(0.15))
+                            .foregroundColor(.orange)
+                            .cornerRadius(10)
+                    }
 
                     // Always available -- lets the player move on whether they
                     // solved it, gave up and viewed the solution, or just want

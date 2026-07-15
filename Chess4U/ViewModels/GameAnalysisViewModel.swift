@@ -8,6 +8,10 @@ class GameAnalysisViewModel: ObservableObject {
     @Published var boardVM: ChessBoardViewModel = ChessBoardViewModel()
     @Published var currentMoveIndex: Int = 0
     @Published var isAnalyzing: Bool = false
+    /// Moves analyzed so far / total, driving the progress bar shown while
+    /// the per-move Stockfish analysis runs.
+    @Published var analysisProgress: Int = 0
+    @Published var analysisTotal: Int = 0
     @Published var selectedMistake: MoveAnalysis? = nil
     @Published var showAudioExplanation: Bool = false
     /// Brief confirmation text shown after "Save Position" is tapped, e.g.
@@ -38,14 +42,30 @@ class GameAnalysisViewModel: ObservableObject {
         )
 
         isAnalyzing = true
+        analysisProgress = 0
+        analysisTotal = game.moves.count
         let aiCoach = self.aiCoach
         aiCoach.uiMode = self.uiMode
 
-        Task { [weak self] in
-            let result = await aiCoach.analyzeGameCloud(game, profile: effectiveProfile)
+        analysisTask?.cancel()
+        analysisTask = Task { [weak self] in
+            let result = await aiCoach.analyzeGameCloud(game, profile: effectiveProfile) { done, total in
+                self?.analysisProgress = done
+                self?.analysisTotal = total
+            }
+            guard !Task.isCancelled else { return }
             self?.analysis = result
             self?.isAnalyzing = false
         }
+    }
+
+    private var analysisTask: Task<Void, Never>? = nil
+
+    /// Stops the per-move engine analysis when the screen goes away, so a
+    /// dismissed sheet doesn't keep firing network requests in the background.
+    func cancelAnalysis() {
+        analysisTask?.cancel()
+        analysisTask = nil
     }
 
     func goToMove(_ index: Int) {

@@ -331,9 +331,16 @@ struct MoveListView: View {
                                     .font(.system(.caption, design: .monospaced))
                                     .foregroundColor(.secondary)
                             }
+                            // chess.com-style: the latest move gets a bold
+                            // highlighted pill so it's easy to track the game.
                             Text(move.notation.isEmpty ? move.longAlgebraic : move.notation)
                                 .font(.system(.caption, design: .monospaced))
+                                .fontWeight(idx == moves.count - 1 ? .bold : .regular)
                                 .foregroundColor(.primary)
+                                .padding(.horizontal, idx == moves.count - 1 ? 6 : 0)
+                                .padding(.vertical, idx == moves.count - 1 ? 2 : 0)
+                                .background(idx == moves.count - 1 ? AppTheme.accentLight : Color.clear)
+                                .cornerRadius(6)
                         }
                         .id(idx)
                     }

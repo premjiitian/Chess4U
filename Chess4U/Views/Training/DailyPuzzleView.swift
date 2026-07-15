@@ -81,7 +81,7 @@ struct DailyPuzzleView: View {
 
             // Board
             VStack(spacing: 8) {
-                ChessBoardView(vm: vm.boardVM, interactive: true)
+                ChessBoardView(vm: vm.boardVM, interactive: vm.puzzleState == .waitingForMove)
                     .padding(.horizontal, 8)
                     .onChange(of: vm.boardVM.game.moves.count) { _ in
                         if let lastMove = vm.boardVM.game.moves.last {
