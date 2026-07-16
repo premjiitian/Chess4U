@@ -16,6 +16,9 @@ struct TrainingHubView: View {
                     // Quick Start
                     quickStartSection
 
+                    // Studies (Lichess-style annotated lessons)
+                    studiesSection
+
                     // Training Types Grid
                     trainingTypesSection
 
@@ -147,6 +150,36 @@ struct TrainingHubView: View {
         .padding()
         .background(Color(.systemBackground))
         .cornerRadius(16)
+    }
+
+    var studiesSection: some View {
+        NavigationLink(destination: StudyLibraryView()) {
+            HStack(spacing: 14) {
+                Image(systemName: "book.fill")
+                    .font(.title2)
+                    .foregroundColor(.white)
+                    .frame(width: 48, height: 48)
+                    .background(AppTheme.accent)
+                    .cornerRadius(12)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Studies")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Text("Annotated lessons: read the ideas, then quiz yourself on every move")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(16)
+        }
     }
 
     var trainingTypesSection: some View {

@@ -129,14 +129,14 @@ struct ChessPuzzle: Codable, Identifiable {
     static let puzzleDatabase: [ChessPuzzle] = [
         ChessPuzzle(
             fen: "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
-            solution: ["f3g5", "f6e4", "g5e4", "d8h4", "e1f1", "e4d2"],
+            solution: ["f3g5", "d7d5", "e4d5", "f6d5", "g5f7"],
             theme: .fork,
             difficulty: .medium,
             playerToMove: .white,
             rating: 1400,
-            title: "Knight Fork Opportunity",
-            explanation: "White's knight jump to g5 creates a dangerous fork threat, forcing Black to recapture and giving White a fork opportunity.",
-            hint: "Look for a knight move that attacks multiple pieces."
+            title: "The Fried Liver Attack",
+            explanation: "Ng5 attacks f7 twice. After the standard ...d5 exd5 Nxd5, the knight sacrifice Nxf7! forks queen and rook and drags Black's king into the open.",
+            hint: "f7 is defended only by the king — attack it again."
         ),
         ChessPuzzle(
             fen: "6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1",
@@ -150,15 +150,15 @@ struct ChessPuzzle: Codable, Identifiable {
             hint: "Can you find a rook move that delivers checkmate?"
         ),
         ChessPuzzle(
-            fen: "r2q1rk1/pp2bppp/2np1n2/2p1p3/2B1P3/2N1BN2/PPP2PPP/R2Q1RK1 w - - 0 1",
-            solution: ["c4f7", "f8f7", "d1d8"],
+            fen: "5rk1/p5pp/8/6N1/8/8/2Q4P/7K w - - 0 1",
+            solution: ["c2b3", "g8h8", "g5f7", "h8g8", "f7h6", "g8h8", "b3g8", "f8g8", "h6f7"],
             theme: .queenSacrifice,
             difficulty: .hard,
             playerToMove: .white,
-            rating: 1700,
-            title: "Bishop Sacrifice and Queen Invasion",
-            explanation: "The bishop sacrifice on f7 is a classic Greek Gift sacrifice. After the king captures, the queen penetrates decisively.",
-            hint: "What happens if you sacrifice the bishop on f7?"
+            rating: 1800,
+            title: "Philidor's Legacy — Smothered Mate",
+            explanation: "Qb3+ forces the king to the corner, the knight double-checks, and then Qg8+!! forces Rxg8 — leaving Nf7# with the king smothered by its own pieces.",
+            hint: "A check on the long diagonal starts a famous forced sequence."
         ),
         ChessPuzzle(
             fen: "8/8/8/3k4/8/3K4/3P4/8 w - - 0 1",
@@ -194,15 +194,15 @@ struct ChessPuzzle: Codable, Identifiable {
             hint: "Can a knight move attack two pieces at once?"
         ),
         ChessPuzzle(
-            fen: "6k1/p4p1p/1p4p1/8/8/1P4P1/P4P1P/5RK1 w - - 0 1",
-            solution: ["f1f8"],
+            fen: "3r2k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1",
+            solution: ["d1d8"],
             theme: .backRankMate,
             difficulty: .beginner,
             playerToMove: .white,
             rating: 700,
-            title: "Simple Back Rank Mate",
-            explanation: "The rook delivers checkmate on f8. The black king has no escape squares and the rook controls the back rank.",
-            hint: "Where can your rook go to checkmate?"
+            title: "Winning the Back-Rank Defender",
+            explanation: "Rxd8# — Black's rook was the only piece guarding the back rank, and nothing can recapture. Count defenders, not just attackers.",
+            hint: "Black's rook is the only defender of d8. What if it disappears?"
         ),
         ChessPuzzle(
             fen: "2r3k1/5ppp/8/8/8/8/5PPP/2R3K1 w - - 0 1",
@@ -228,14 +228,14 @@ struct ChessPuzzle: Codable, Identifiable {
         ),
         ChessPuzzle(
             fen: "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1",
-            solution: ["e1d2", "e8d7", "d2e3", "d7e7", "e3d4", "e7d7", "d4e5", "d7e7", "e2e4", "e7d7", "e4e5", "d7e7", "e5e6", "e7f8", "e6e7", "f8e8", "e1e6"],
+            solution: ["e1f2", "e8f8", "f2e3", "f8e7", "e3f3", "e7d7", "f3f4", "d7e7", "f4e5"],
             theme: .endgameTechnique,
             difficulty: .hard,
             playerToMove: .white,
             rating: 1600,
             title: "King and Pawn vs King — Winning Technique",
-            explanation: "White must use the key squares concept to promote the pawn. The king must reach e6 or f7 to escort the pawn.",
-            hint: "The king must reach the key squares: d6, e6, or f6."
+            explanation: "The king marches up the board AHEAD of its pawn. Once it reaches e5 in front of the pawn, the win is guaranteed — the pawn only advances once the king has cleared the road. (Engine-verified line.)",
+            hint: "Move the king up the board first — the pawn can wait."
         )
     ]
 }

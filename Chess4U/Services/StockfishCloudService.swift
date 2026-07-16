@@ -60,10 +60,15 @@ final class StockfishCloudService: @unchecked Sendable {
         ]
         guard let url = components?.url else { throw StockfishCloudError.badResponse }
 
+        // The API 403s clients without an identifying User-Agent (verified
+        // against this exact endpoint) -- always send one.
+        var request = URLRequest(url: url)
+        request.setValue("Chess4U-iOS (https://github.com/premjiitian/Chess4U)", forHTTPHeaderField: "User-Agent")
+
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await session.data(from: url)
+            (data, response) = try await session.data(for: request)
         } catch {
             throw StockfishCloudError.network
         }

@@ -16,9 +16,15 @@ struct VariationPracticeView: View {
                 variationHeader(opening)
             }
 
-            // Board
+            // Board -- without the onChange the learner's moves never reached
+            // the view model, so the feature was completely inert.
             ChessBoardView(vm: vm.boardVM, interactive: true)
                 .padding()
+                .onChange(of: vm.boardVM.game.moves.count) { _ in
+                    if let lastMove = vm.boardVM.game.moves.last {
+                        vm.handleMove(lastMove)
+                    }
+                }
 
             // Variation tree
             variationTreeSection
@@ -189,6 +195,9 @@ class VariationPracticeViewModel: ObservableObject {
 
     func handleMove(_ move: ChessMove) {
         guard currentDepth < expectedMoves.count else { return }
+        // Ignore the scripted reply this view model plays itself -- variation
+        // lines always start from the initial position, so the learner is White.
+        guard move.piece.color == .white else { return }
         let expected = expectedMoves[currentDepth]
         let played = move.longAlgebraic
 
@@ -197,25 +206,31 @@ class VariationPracticeViewModel: ObservableObject {
             currentDepth += 1
             isCorrect = true
             comment = currentDepth >= expectedMoves.count ? "✅ Variation complete! Excellent!" : "Correct! Continue..."
-
-            if currentDepth < expectedMoves.count {
-                // Make the response move
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.makeResponseMove()
-                }
-            }
+            makeResponseMove()
         } else {
             isCorrect = false
-            comment = "❌ That's not the expected move. The move \(played) deviates from the main line. Try again!"
-            // Reset board to position before wrong move
+            comment = "❌ \(move.notation.isEmpty ? played : move.notation) deviates from the book line. Board reset — try again!"
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                self?.boardVM.undoLastMove()
+            }
         }
     }
 
+    /// Actually plays the scripted reply on the board (previously this only
+    /// incremented a counter, so the opponent never visibly moved).
     private func makeResponseMove() {
         guard currentDepth < expectedMoves.count else { return }
-        // Apply response move
-        comment = nil
-        isCorrect = nil
-        currentDepth += 1
+        let reply = expectedMoves[currentDepth]
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            guard let self = self else { return }
+            guard self.currentDepth < self.expectedMoves.count else { return }
+            if let move = ChessEngineService.shared.move(fromUCI: reply, board: self.boardVM.game.board) {
+                self.boardVM.executeMove(move)
+                self.movePath.append(move.notation.isEmpty ? move.longAlgebraic : move.notation)
+                self.currentDepth += 1
+            }
+        }
     }
 }

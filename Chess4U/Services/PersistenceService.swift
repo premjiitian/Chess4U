@@ -21,6 +21,7 @@ final class PersistenceService {
         static let openingMastery = "chess4u.openingMastery"
         static let personalPuzzles = "chess4u.personalPuzzles"
         static let syncedGameIDs = "chess4u.syncedGameIDs"
+        static let studies = "chess4u.studies"
     }
 
     // MARK: - Player Profile
@@ -175,6 +176,38 @@ final class PersistenceService {
         let idSet = Set(ids)
         existing.removeAll { idSet.contains($0.id) }
         savePersonalPuzzles(existing)
+    }
+
+    // MARK: - Studies (user-created, Lichess-style annotated lessons)
+    func loadStudies() -> [Study] {
+        guard let data = defaults.data(forKey: Keys.studies),
+              let studies = try? decoder.decode([Study].self, from: data) else {
+            return []
+        }
+        return studies
+    }
+
+    func saveStudies(_ studies: [Study]) {
+        if let data = try? encoder.encode(studies) {
+            defaults.set(data, forKey: Keys.studies)
+        }
+    }
+
+    /// Inserts the study, or replaces the stored copy with the same id.
+    func addOrUpdateStudy(_ study: Study) {
+        var studies = loadStudies()
+        if let idx = studies.firstIndex(where: { $0.id == study.id }) {
+            studies[idx] = study
+        } else {
+            studies.insert(study, at: 0)
+        }
+        saveStudies(studies)
+    }
+
+    func deleteStudy(id: UUID) {
+        var studies = loadStudies()
+        studies.removeAll { $0.id == id }
+        saveStudies(studies)
     }
 
     /// IDs of external games (chess.com/Lichess) already analyzed, so a

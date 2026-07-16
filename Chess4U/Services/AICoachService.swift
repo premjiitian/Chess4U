@@ -247,6 +247,7 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
         var currentBoard = ChessBoard()
         var cloudAvailable = true
         var cloudCallsSucceeded = 0
+        var consecutiveCloudFailures = 0
         let totalMoves = game.moves.count
 
         for (idx, move) in game.moves.enumerated() {
@@ -259,6 +260,7 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
 
             if cloudAvailable, let result = try? await cloud.analyze(fen: currentBoard.fen, depth: depth) {
                 cloudCallsSucceeded += 1
+                consecutiveCloudFailures = 0
                 evaluation = result.evaluationPawns
                 bestMoveUCI = result.bestMoveUCI
                 if let uci = result.bestMoveUCI, let parsed = engine.move(fromUCI: uci, board: currentBoard) {
@@ -267,7 +269,17 @@ final class AICoachService: ObservableObject, @unchecked Sendable {
                     bestMove = engine.bestMove(for: currentBoard.activeColor, on: currentBoard, depth: 2)
                 }
             } else {
-                cloudAvailable = false
+                // The free API rate-limits under load -- tolerate transient
+                // failures (with a short pause) and only give up on the cloud
+                // for the rest of the game after several failures in a row.
+                if cloudAvailable {
+                    consecutiveCloudFailures += 1
+                    if consecutiveCloudFailures >= 3 {
+                        cloudAvailable = false
+                    } else {
+                        try? await Task.sleep(nanoseconds: 1_500_000_000)
+                    }
+                }
                 evaluation = Double(engine.evaluate(board: currentBoard)) / 100.0
                 bestMove = engine.bestMove(for: currentBoard.activeColor, on: currentBoard, depth: 2)
             }
